@@ -1,0 +1,26 @@
+# Interval to check updates for Release/InRelease files.
+# Default: 15 seconds
+check_interval = 15
+
+# Cache period for bad HTTP response statuses.
+# Default: 3 seconds
+cache_period = 3
+
+# Directory for meta data files.
+# The directory owner must be the same as the process owner of go-apt-cacher.
+meta_dir = "/var/spool/go-apt-cacher/meta"
+
+# Directory for non-meta data files.
+# This directory must be different from meta_dir.
+# The directory owner must be the same as the process owner of go-apt-cacher.
+cache_dir = "/var/spool/go-apt-cacher/cache"
+
+# Capacity for cache_dir.
+# Default: 1 GiB
+cache_capacity = 1
+
+# mapping declares which prefix maps to a Debian repository URL.
+# prefix must match this regexp: ^[a-z0-9._-]+$
+[mapping]
+ubuntu = "http://archive.ubuntu.com/ubuntu"
+security = "http://security.ubuntu.com/ubuntu"

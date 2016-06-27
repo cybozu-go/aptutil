@@ -16,14 +16,20 @@ Features
 * LRU-based cache eviction
 * Smart caching strategy specialized for APT
 
-Install
--------
+Build
+-----
 
 Use Go 1.6 or better.
 
 ```
-go get github.com/cybozu-go/go-apt-cacher/cmd/go-apt-cacher
+go get -u github.com/cybozu-go/go-apt-cacher/
+go install github.com/cybozu-go/go-apt-cacher/...
 ```
+
+Usage
+-----
+
+* [go-apt-cacher](cmd/go-apt-cacher/USAGE.md)
 
 License
 -------
