@@ -1,0 +1,15 @@
+*.exe
+
+# Editors
+*~
+.*.swp
+.#*
+\#*#
+.dir-locals.el
+
+# TAGS
+TAGS
+GPATH
+GRTAGS
+GTAGS
+tags

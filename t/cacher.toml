@@ -1,0 +1,10 @@
+check_interval = 10
+cache_period = 5
+meta_dir = "/tmp/meta"
+cache_dir = "/tmp/cache"
+cache_capacity = 21
+
+[mapping]
+ubuntu = "http://archive.ubuntu.com/ubuntu"
+security = "http://security.ubuntu.com/ubuntu"
+dell = "http://linux.dell.com/repo/community/ubuntu"

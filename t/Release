@@ -1,0 +1,37 @@
+Origin: Artifactory
+Label: Artifactory
+Suite: testing
+Codename: testing
+Date: Fri, 03 Jun 2016 00:38:19 UTC
+Component: main
+Architectures: amd64 i386
+MD5Sum:
+ 5c30f072d01cde094a5c07fccd217cf3             3098 main/binary-all/Packages
+ 4ed86bda6871fd3825a65e95bb714ef0             1259 main/binary-all/Packages.bz2
+ c451dc7898107a946f3bd085e602a11e             1059 main/binary-all/Packages.gz
+ 181e90d6c94c35d22d931625612bdb49            15278 main/binary-amd64/Packages
+ 6c35d0e61d74a9a533652b13052fe28c             4588 main/binary-amd64/Packages.bz2
+ 3f71c3b19ec6f926c71504cf147f3574             4418 main/binary-amd64/Packages.gz
+ 5c30f072d01cde094a5c07fccd217cf3             3098 main/binary-i386/Packages
+ 4ed86bda6871fd3825a65e95bb714ef0             1259 main/binary-i386/Packages.bz2
+ c451dc7898107a946f3bd085e602a11e             1059 main/binary-i386/Packages.gz
+SHA1:
+ e3c9a2028a6938e49fc240cdd55c2f4b0b75dfde             3098 main/binary-all/Packages
+ eb2c25b19facbc8c103a7e14ae5b768e5e47157e             1259 main/binary-all/Packages.bz2
+ 85740a100431a4b71d4ddf5f9290b0a6d4737959             1059 main/binary-all/Packages.gz
+ 10c64fafa30f1a79ec1e09c877e7dd26d53239f1            15278 main/binary-amd64/Packages
+ 70324c75e0a9814dab9ccf66348c1e77f0d96f32             4588 main/binary-amd64/Packages.bz2
+ 64a566a5b6a92c1fefde9630d1b8ecb6e9352523             4418 main/binary-amd64/Packages.gz
+ e3c9a2028a6938e49fc240cdd55c2f4b0b75dfde             3098 main/binary-i386/Packages
+ eb2c25b19facbc8c103a7e14ae5b768e5e47157e             1259 main/binary-i386/Packages.bz2
+ 85740a100431a4b71d4ddf5f9290b0a6d4737959             1059 main/binary-i386/Packages.gz
+SHA256:
+ e3b1e5a6951881bca3ee230e5f3215534eb07f602a2f0415af3b182468468104             3098 main/binary-all/Packages
+ bb870366ea454d3e809604b0e5ca2bd978244bd08d115e03eac467d1d1fe5533             1259 main/binary-all/Packages.bz2
+ a6972328347cc787f4f8c2e20a930ec965bd520380b0449e610995b6b0f1e3c5             1059 main/binary-all/Packages.gz
+ 0a530f1364240f5bf922fc26404589d171b30f18494a5143e251fa3b8239f86b            15278 main/binary-amd64/Packages
+ 6e0c6d858e81de1b0cb142a47b99a3dce1c0a68a1988cefad370aeabdba14729             4588 main/binary-amd64/Packages.bz2
+ 78fa82404a432d7b56761ccdbf275f4a338c8779a9cec17480b91672c28682aa             4418 main/binary-amd64/Packages.gz
+ e3b1e5a6951881bca3ee230e5f3215534eb07f602a2f0415af3b182468468104             3098 main/binary-i386/Packages
+ bb870366ea454d3e809604b0e5ca2bd978244bd08d115e03eac467d1d1fe5533             1259 main/binary-i386/Packages.bz2
+ a6972328347cc787f4f8c2e20a930ec965bd520380b0449e610995b6b0f1e3c5             1059 main/binary-i386/Packages.gz
