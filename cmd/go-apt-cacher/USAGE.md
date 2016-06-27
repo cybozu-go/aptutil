@@ -48,7 +48,6 @@ deb http://<go-apt-cacher hostname>/ubuntu trusty-updates main restricted
 deb http://<go-apt-cacher hostname>/security trusty-security main restricted
 ```
 
-
 [TOML]: https://github.com/toml-lang/toml
 [systemd]: https://www.freedesktop.org/wiki/Software/systemd/
 [upstart]: http://upstart.ubuntu.com/

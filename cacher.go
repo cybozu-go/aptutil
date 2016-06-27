@@ -109,6 +109,7 @@ func NewCacher(ctx context.Context, config *CacherConfig) (*Cacher, error) {
 		client:        &http.Client{},
 		info:          make(map[string]*FileInfo),
 		dlChannels:    make(map[string]chan struct{}),
+		results:       make(map[string]int),
 	}
 
 	metas := meta.ListAll()
@@ -273,7 +274,7 @@ func (c *Cacher) download(p string, u *url.URL, valid *FileInfo) {
 				"_path": p,
 				"_err":  err.Error(),
 			})
-			return
+			// do not return; we accept broken meta data as is.
 		}
 	}
 
@@ -285,7 +286,8 @@ func (c *Cacher) download(p string, u *url.URL, valid *FileInfo) {
 			"_path": p,
 			"_err":  err.Error(),
 		})
-		return
+		// panic because go-apt-cacher cannot continue working
+		panic(err)
 	}
 
 	for _, fi2 := range fil {

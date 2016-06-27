@@ -241,9 +241,11 @@ func (cm *Storage) Insert(data []byte, fi *FileInfo) error {
 		cm.used -= existing.Size()
 		heap.Remove(cm, existing.index)
 		delete(cm.cache, p)
-		log.Info("deleted existing item", map[string]interface{}{
-			"_path": p,
-		})
+		if log.Enabled(log.LvDebug) {
+			log.Debug("deleted existing item", map[string]interface{}{
+				"_path": p,
+			})
+		}
 	}
 
 	err = os.Rename(f.Name(), destpath)

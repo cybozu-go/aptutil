@@ -1,5 +1,4 @@
-go-apt-cacher is a caching reverse proxy built specifically for Debian (APT)
-repositories.
+A caching reverse proxy built specially for Debian (APT) repositories.
 
 [![Build Status](https://travis-ci.org/cybozu-go/go-apt-cacher.svg?branch=master)](https://travis-ci.org/cybozu-go/go-apt-cacher)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)][MIT]
