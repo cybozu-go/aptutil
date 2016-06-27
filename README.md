@@ -7,10 +7,8 @@ A caching reverse proxy built specially for Debian (APT) repositories.
 Features
 --------
 
-* Automatic checksum validation for cached files
-
+* Automatic checksum validation for cached files  
     Cached files will **never** be broken!
-
 * Reverse proxy for http and https repositories
 * LRU-based cache eviction
 * Smart caching strategy specialized for APT
