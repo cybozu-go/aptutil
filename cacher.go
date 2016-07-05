@@ -34,6 +34,7 @@ type Cacher struct {
 	cachePeriod   time.Duration
 	ctx           context.Context
 	client        *http.Client
+	maxConns      int
 
 	fiLock sync.RWMutex
 	info   map[string]*FileInfo
@@ -41,6 +42,9 @@ type Cacher struct {
 	dlLock     sync.RWMutex
 	dlChannels map[string]chan struct{}
 	results    map[string]int
+
+	hostLock sync.Mutex
+	hostSem  map[string]chan struct{}
 }
 
 // NewCacher constructs Cacher.
@@ -107,9 +111,11 @@ func NewCacher(ctx context.Context, config *CacherConfig) (*Cacher, error) {
 		cachePeriod:   cachePeriod,
 		ctx:           ctx,
 		client:        &http.Client{},
+		maxConns:      config.MaxConns,
 		info:          make(map[string]*FileInfo),
 		dlChannels:    make(map[string]chan struct{}),
 		results:       make(map[string]int),
+		hostSem:       make(map[string]chan struct{}),
 	}
 
 	metas := meta.ListAll()
@@ -137,6 +143,35 @@ func NewCacher(ctx context.Context, config *CacherConfig) (*Cacher, error) {
 	}
 
 	return c, nil
+}
+
+func (c *Cacher) acquireSemaphore(host string) {
+	if c.maxConns == 0 {
+		return
+	}
+
+	c.hostLock.Lock()
+	sem, ok := c.hostSem[host]
+	if !ok {
+		sem = make(chan struct{}, c.maxConns)
+		for i := 0; i < c.maxConns; i++ {
+			sem <- struct{}{}
+		}
+		c.hostSem[host] = sem
+	}
+	c.hostLock.Unlock()
+
+	<-sem
+}
+
+func (c *Cacher) releaseSemaphore(host string) {
+	if c.maxConns == 0 {
+		return
+	}
+
+	c.hostLock.Lock()
+	c.hostSem[host] <- struct{}{}
+	c.hostLock.Unlock()
 }
 
 func (c *Cacher) maintMeta(p string) {
@@ -206,9 +241,12 @@ func (c *Cacher) Download(p string, valid *FileInfo) <-chan struct{} {
 
 // download is a goroutine to download an item.
 func (c *Cacher) download(p string, u *url.URL, valid *FileInfo) {
+	c.acquireSemaphore(u.Host)
+
 	statusCode := http.StatusInternalServerError
 
 	defer func() {
+		c.releaseSemaphore(u.Host)
 		c.dlLock.Lock()
 		ch := c.dlChannels[p]
 		delete(c.dlChannels, p)

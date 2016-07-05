@@ -18,6 +18,7 @@ import (
 const (
 	defaultConfigPath = "/etc/go-apt-cacher.toml"
 	defaultAddress    = ":3142"
+	defaultMaxConns   = 10
 )
 
 var (
@@ -44,6 +45,9 @@ func main() {
 			"_keys": fmt.Sprintf("%#v", md.Undecoded()),
 		})
 		os.Exit(1)
+	}
+	if !md.IsDefined("max_conns") {
+		config.MaxConns = defaultMaxConns
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

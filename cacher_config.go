@@ -4,6 +4,7 @@ const (
 	defaultCheckInterval = 15
 	defaultCachePeriod   = 3
 	defaultCacheCapacity = 1
+	defaultMaxConns      = 10
 )
 
 // CacherConfig is a struct to read TOML configurations.
@@ -41,6 +42,12 @@ type CacherConfig struct {
 	//
 	// Unit is GiB.  Default is 1 GiB.
 	CacheCapacity int `toml:"cache_capacity"`
+
+	// MaxConns specifies the maximum concurrent connections to an
+	// upstream host.
+	//
+	// Zero disables limit on the number of connections.
+	MaxConns int `toml:"max_conns"`
 
 	// Mapping specifies mapping between prefixes and APT URLs.
 	Mapping map[string]string `toml:"mapping"`
