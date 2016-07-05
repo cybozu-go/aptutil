@@ -288,7 +288,7 @@ func calcChecksum(dir string, e *entry) error {
 // Lookup looks up an item in the cache.
 // If no item matching fi is found, ErrNotFound is returned.
 //
-// The caller is responsible to close the retured os.File.
+// The caller is responsible to close the returned os.File.
 func (cm *Storage) Lookup(fi *FileInfo) (*os.File, error) {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
