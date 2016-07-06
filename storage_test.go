@@ -236,10 +236,16 @@ func TestStorageLoad(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	for k, v := range files {
-		err := ioutil.WriteFile(filepath.Join(dir, k), v, 0644)
+		err := ioutil.WriteFile(filepath.Join(dir, k+fileSuffix), v, 0644)
 		if err != nil {
 			t.Fatal(err)
 		}
+	}
+
+	// dummy should be ignored as it does not have a proper suffix.
+	err = ioutil.WriteFile(filepath.Join(dir, "dummy"), []byte{'d'}, 0644)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	cm := NewStorage(dir, 0)

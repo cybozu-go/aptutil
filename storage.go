@@ -14,6 +14,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	fileSuffix = ".cache"
+)
+
 var (
 	// ErrNotFound is returned by Storage.Lookup for non-existing items.
 	ErrNotFound = errors.New("not found")
@@ -30,6 +34,11 @@ type entry struct {
 	// atime is used as priorities.
 	atime uint64
 	index int
+}
+
+// FilePath returns the filename of the entry.
+func (e *entry) FilePath() string {
+	return e.FileInfo.path + fileSuffix
 }
 
 // Storage stores cache items in local file system.
@@ -107,7 +116,7 @@ func (cm *Storage) maint() {
 		e := heap.Pop(cm).(*entry)
 		delete(cm.cache, e.Path())
 		cm.used -= e.Size()
-		if err := os.Remove(filepath.Join(cm.dir, e.Path())); err != nil {
+		if err := os.Remove(filepath.Join(cm.dir, e.FilePath())); err != nil {
 			log.Warn("Storage.maint", map[string]interface{}{
 				"_err": err.Error(),
 			})
@@ -144,6 +153,10 @@ func (cm *Storage) Load() error {
 		if err != nil {
 			return err
 		}
+		if filepath.Ext(subpath) != fileSuffix {
+			return nil
+		}
+		subpath = subpath[:len(subpath)-len(fileSuffix)]
 		if _, ok := cm.cache[subpath]; ok {
 			return nil
 		}
@@ -211,7 +224,7 @@ func (cm *Storage) Insert(data []byte, fi *FileInfo) error {
 	}
 
 	p := fi.path
-	destpath := filepath.Join(cm.dir, p)
+	destpath := filepath.Join(cm.dir, p+fileSuffix)
 	dirpath := filepath.Dir(destpath)
 
 	_, err = os.Stat(dirpath)
@@ -272,7 +285,7 @@ func calcChecksum(dir string, e *entry) error {
 		return nil
 	}
 
-	data, err := readData(filepath.Join(dir, e.Path()))
+	data, err := readData(filepath.Join(dir, e.FilePath()))
 	if err != nil {
 		return err
 	}
@@ -312,7 +325,7 @@ func (cm *Storage) Lookup(fi *FileInfo) (*os.File, error) {
 	e.atime = cm.lclock
 	cm.lclock++
 	heap.Fix(cm, e.index)
-	return os.Open(filepath.Join(cm.dir, fi.path))
+	return os.Open(filepath.Join(cm.dir, e.FilePath()))
 }
 
 // ListAll returns a list of FileInfo for all cached items.
@@ -337,7 +350,7 @@ func (cm *Storage) Delete(p string) error {
 		return nil
 	}
 
-	err := os.Remove(filepath.Join(cm.dir, p))
+	err := os.Remove(filepath.Join(cm.dir, e.FilePath()))
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return err
