@@ -19,6 +19,11 @@ cache_dir = "/var/spool/go-apt-cacher/cache"
 # Default: 1 GiB
 cache_capacity = 1
 
+# Maximum concurrent connections for an upstream server.
+# Setting this 0 disables limit on the number of connections.
+# Default: 10
+max_conns = 10
+
 # mapping declares which prefix maps to a Debian repository URL.
 # prefix must match this regexp: ^[a-z0-9._-]+$
 [mapping]

@@ -52,10 +52,11 @@ The lock listed first has higher order than locks listed under it.
 
     This lock is to protect file information cached in Cacher.
 
-2. `Cacher.dlLock`
+2. `Cacher.dlLock` and `Cacher.hostLock`
 
-    This lock is to protect download channels and cached response statuses.
-    Strictly, this lock is used independently from other locks.
+    These locks are to protect download channels, cached response statuses,
+    and semaphores for each upstream host.
+    Strictly, these are used independently from other locks.
 
 3. `Storage.mu`
 

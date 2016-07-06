@@ -35,6 +35,9 @@ func TestCacherConfig(t *testing.T) {
 	if config.CacheCapacity != 21 {
 		t.Error(`config.CacheCapacity != 21`)
 	}
+	if config.MaxConns != 3 {
+		t.Error(`config.MaxConns != 3`)
+	}
 
 	if config.Mapping["ubuntu"] != "http://archive.ubuntu.com/ubuntu" {
 		t.Error(`config.Mapping["ubuntu"]`)
