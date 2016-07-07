@@ -1,15 +1,13 @@
-package aptcacher
+package cacher
 
 import (
 	"container/heap"
-	"crypto/md5"
-	"crypto/sha1"
-	"crypto/sha256"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
 
+	"github.com/cybozu-go/go-apt-cacher/apt"
 	"github.com/cybozu-go/log"
 	"github.com/pkg/errors"
 )
@@ -28,7 +26,7 @@ var (
 
 // entry represents an item in the cache.
 type entry struct {
-	*FileInfo
+	*apt.FileInfo
 
 	// for container/heap.
 	// atime is used as priorities.
@@ -38,7 +36,7 @@ type entry struct {
 
 // FilePath returns the filename of the entry.
 func (e *entry) FilePath() string {
-	return e.FileInfo.path + fileSuffix
+	return e.Path() + fileSuffix
 }
 
 // Storage stores cache items in local file system.
@@ -164,12 +162,9 @@ func (cm *Storage) Load() error {
 		size := uint64(info.Size())
 		e := &entry{
 			// delay calculation of checksums.
-			FileInfo: &FileInfo{
-				path: subpath,
-				size: size,
-			},
-			atime: cm.lclock,
-			index: len(cm.lru),
+			FileInfo: apt.MakeFileInfoNoChecksum(subpath, size),
+			atime:    cm.lclock,
+			index:    len(cm.lru),
 		}
 		cm.used += size
 		cm.lclock++
@@ -195,13 +190,14 @@ func (cm *Storage) Load() error {
 //
 // fi.Path() must be as clean as filepath.Clean() and
 // must not be filepath.IsAbs().
-func (cm *Storage) Insert(data []byte, fi *FileInfo) error {
+func (cm *Storage) Insert(data []byte, fi *apt.FileInfo) error {
+	p := fi.Path()
 	switch {
-	case fi.path != filepath.Clean(fi.path):
+	case p != filepath.Clean(p):
 		return ErrBadPath
-	case filepath.IsAbs(fi.path):
+	case filepath.IsAbs(p):
 		return ErrBadPath
-	case fi.path == ".":
+	case p == ".":
 		return ErrBadPath
 	}
 
@@ -223,7 +219,6 @@ func (cm *Storage) Insert(data []byte, fi *FileInfo) error {
 		return err
 	}
 
-	p := fi.path
 	destpath := filepath.Join(cm.dir, p+fileSuffix)
 	dirpath := filepath.Dir(destpath)
 
@@ -270,7 +265,7 @@ func (cm *Storage) Insert(data []byte, fi *FileInfo) error {
 		FileInfo: fi,
 		atime:    cm.lclock,
 	}
-	cm.used += fi.size
+	cm.used += fi.Size()
 	cm.lclock++
 	heap.Push(cm, e)
 	cm.cache[p] = e
@@ -281,7 +276,7 @@ func (cm *Storage) Insert(data []byte, fi *FileInfo) error {
 }
 
 func calcChecksum(dir string, e *entry) error {
-	if e.FileInfo.md5sum != nil {
+	if e.FileInfo.HasChecksum() {
 		return nil
 	}
 
@@ -289,12 +284,7 @@ func calcChecksum(dir string, e *entry) error {
 	if err != nil {
 		return err
 	}
-	md5sum := md5.Sum(data)
-	sha1sum := sha1.Sum(data)
-	sha256sum := sha256.Sum256(data)
-	e.FileInfo.md5sum = md5sum[:]
-	e.FileInfo.sha1sum = sha1sum[:]
-	e.FileInfo.sha256sum = sha256sum[:]
+	e.FileInfo.CalcChecksums(data)
 	return nil
 }
 
@@ -302,11 +292,11 @@ func calcChecksum(dir string, e *entry) error {
 // If no item matching fi is found, ErrNotFound is returned.
 //
 // The caller is responsible to close the returned os.File.
-func (cm *Storage) Lookup(fi *FileInfo) (*os.File, error) {
+func (cm *Storage) Lookup(fi *apt.FileInfo) (*os.File, error) {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 
-	e, ok := cm.cache[fi.path]
+	e, ok := cm.cache[fi.Path()]
 	if !ok {
 		return nil, ErrNotFound
 	}
@@ -328,12 +318,12 @@ func (cm *Storage) Lookup(fi *FileInfo) (*os.File, error) {
 	return os.Open(filepath.Join(cm.dir, e.FilePath()))
 }
 
-// ListAll returns a list of FileInfo for all cached items.
-func (cm *Storage) ListAll() []*FileInfo {
+// ListAll returns a list of *apt.FileInfo for all cached items.
+func (cm *Storage) ListAll() []*apt.FileInfo {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 
-	l := make([]*FileInfo, cm.Len())
+	l := make([]*apt.FileInfo, cm.Len())
 	for i, e := range cm.lru {
 		l[i] = e.FileInfo
 	}
@@ -360,7 +350,7 @@ func (cm *Storage) Delete(p string) error {
 		})
 	}
 
-	cm.used -= e.size
+	cm.used -= e.Size()
 	heap.Remove(cm, e.index)
 	delete(cm.cache, p)
 	log.Info("deleted item", map[string]interface{}{

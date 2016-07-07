@@ -1,4 +1,4 @@
-package aptcacher
+package cacher
 
 const (
 	defaultCheckInterval = 15
@@ -7,7 +7,7 @@ const (
 	defaultMaxConns      = 10
 )
 
-// CacherConfig is a struct to read TOML configurations.
+// Config is a struct to read TOML configurations.
 //
 // Use https://github.com/BurntSushi/toml as follows:
 //
@@ -16,7 +16,7 @@ const (
 //    if err != nil {
 //        ...
 //    }
-type CacherConfig struct {
+type Config struct {
 	// CheckInterval specifies interval in seconds to check updates for
 	// Release/InRelease files.
 	//

@@ -1,4 +1,4 @@
-package aptcacher
+package cacher
 
 // This file implements core logics to download and cache APT
 // repository items.
@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cybozu-go/go-apt-cacher/apt"
 	"github.com/cybozu-go/log"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
@@ -37,7 +38,7 @@ type Cacher struct {
 	maxConns      int
 
 	fiLock sync.RWMutex
-	info   map[string]*FileInfo
+	info   map[string]*apt.FileInfo
 
 	dlLock     sync.RWMutex
 	dlChannels map[string]chan struct{}
@@ -48,7 +49,7 @@ type Cacher struct {
 }
 
 // NewCacher constructs Cacher.
-func NewCacher(ctx context.Context, config *CacherConfig) (*Cacher, error) {
+func NewCacher(ctx context.Context, config *Config) (*Cacher, error) {
 	checkInterval := time.Duration(config.CheckInterval) * time.Second
 	if checkInterval == 0 {
 		checkInterval = defaultCheckInterval * time.Second
@@ -112,7 +113,7 @@ func NewCacher(ctx context.Context, config *CacherConfig) (*Cacher, error) {
 		ctx:           ctx,
 		client:        &http.Client{},
 		maxConns:      config.MaxConns,
-		info:          make(map[string]*FileInfo),
+		info:          make(map[string]*apt.FileInfo),
 		dlChannels:    make(map[string]chan struct{}),
 		results:       make(map[string]int),
 		hostSem:       make(map[string]chan struct{}),
@@ -124,21 +125,22 @@ func NewCacher(ctx context.Context, config *CacherConfig) (*Cacher, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "meta.Lookup")
 		}
-		fil, err := ExtractFileInfo(fi.path, f)
+		fil, err := apt.ExtractFileInfo(fi.Path(), f)
 		f.Close()
 		if err != nil {
-			return nil, errors.Wrap(err, "ExtractFileInfo("+fi.path+")")
+			return nil, errors.Wrap(err, "ExtractFileInfo("+fi.Path()+")")
 		}
 		for _, fi2 := range fil {
-			c.info[fi2.path] = fi2
+			c.info[fi2.Path()] = fi2
 		}
 	}
 
 	// add meta files w/o checksums (Release, Release.pgp, and InRelease).
 	for _, fi := range metas {
-		if _, ok := c.info[fi.path]; !ok {
-			c.info[fi.path] = fi
-			c.maintMeta(fi.path)
+		p := fi.Path()
+		if _, ok := c.info[p]; !ok {
+			c.info[p] = fi
+			c.maintMeta(p)
 		}
 	}
 
@@ -219,7 +221,7 @@ func (c *Cacher) maintRelease(p string, withGPG bool) {
 // Note that download may fail, or just invalidated soon.
 // Users of this method should retry if the item is not cached
 // or invalidated.
-func (c *Cacher) Download(p string, valid *FileInfo) <-chan struct{} {
+func (c *Cacher) Download(p string, valid *apt.FileInfo) <-chan struct{} {
 	u := c.um.URL(p)
 	if u == nil {
 		return nil
@@ -240,7 +242,7 @@ func (c *Cacher) Download(p string, valid *FileInfo) <-chan struct{} {
 }
 
 // download is a goroutine to download an item.
-func (c *Cacher) download(p string, u *url.URL, valid *FileInfo) {
+func (c *Cacher) download(p string, u *url.URL, valid *apt.FileInfo) {
 	c.acquireSemaphore(u.Host)
 
 	statusCode := http.StatusInternalServerError
@@ -294,7 +296,7 @@ func (c *Cacher) download(p string, u *url.URL, valid *FileInfo) {
 		return
 	}
 
-	fi := MakeFileInfo(p, body)
+	fi := apt.MakeFileInfo(p, body)
 	if valid != nil && !valid.Same(fi) {
 		log.Warn("downloaded data is not valid", map[string]interface{}{
 			"_url": u.String(),
@@ -303,10 +305,10 @@ func (c *Cacher) download(p string, u *url.URL, valid *FileInfo) {
 	}
 
 	storage := c.items
-	var fil []*FileInfo
-	if IsMeta(p) {
+	var fil []*apt.FileInfo
+	if apt.IsMeta(p) {
 		storage = c.meta
-		fil, err = ExtractFileInfo(p, bytes.NewReader(body))
+		fil, err = apt.ExtractFileInfo(p, bytes.NewReader(body))
 		if err != nil {
 			log.Error("invalid meta data", map[string]interface{}{
 				"_path": p,
@@ -329,9 +331,9 @@ func (c *Cacher) download(p string, u *url.URL, valid *FileInfo) {
 	}
 
 	for _, fi2 := range fil {
-		c.info[fi2.path] = fi2
+		c.info[fi2.Path()] = fi2
 	}
-	if IsMeta(p) {
+	if apt.IsMeta(p) {
 		_, ok := c.info[p]
 		if !ok {
 			// As this is the first time that downloaded meta file p,
@@ -357,8 +359,8 @@ func (c *Cacher) Get(p string) (statusCode int, f *os.File, err error) {
 	}
 
 	storage := c.items
-	if IsMeta(p) {
-		if !IsSupported(p) {
+	if apt.IsMeta(p) {
+		if !apt.IsSupported(p) {
 			// return 404 for unsupported compression algorithms
 			return http.StatusNotFound, nil, nil
 		}

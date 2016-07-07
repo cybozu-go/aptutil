@@ -1,4 +1,4 @@
-package aptcacher
+package apt
 
 import (
 	"bytes"

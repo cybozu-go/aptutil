@@ -1,4 +1,4 @@
-package aptcacher
+package cacher
 
 import (
 	"fmt"
@@ -7,10 +7,10 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
-func TestCacherConfig(t *testing.T) {
+func TestConfig(t *testing.T) {
 	t.Parallel()
 
-	var config CacherConfig
+	var config Config
 	md, err := toml.DecodeFile("t/cacher.toml", &config)
 	if err != nil {
 		t.Fatal(err)

@@ -1,13 +1,13 @@
-package aptcacher
+package cacher
 
 import (
 	"bytes"
-	"crypto/md5"
-	"crypto/sha1"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/cybozu-go/go-apt-cacher/apt"
 )
 
 func TestStorage(t *testing.T) {
@@ -21,10 +21,8 @@ func TestStorage(t *testing.T) {
 
 	cm := NewStorage(dir, 0)
 
-	err = cm.Insert([]byte{'a'}, &FileInfo{
-		path: "path/to/a",
-		size: 1,
-	})
+	data := []byte{'a'}
+	err = cm.Insert(data, apt.MakeFileInfo("path/to/a", data))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,10 +34,7 @@ func TestStorage(t *testing.T) {
 	}
 
 	// overwrite
-	err = cm.Insert([]byte{'a'}, &FileInfo{
-		path: "path/to/a",
-		size: 1,
-	})
+	err = cm.Insert(data, apt.MakeFileInfo("path/to/a", data))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,10 +45,8 @@ func TestStorage(t *testing.T) {
 		t.Error(`cm.used != 1`)
 	}
 
-	err = cm.Insert([]byte{'b', 'c'}, &FileInfo{
-		path: "path/to/bc",
-		size: 2,
-	})
+	data = []byte{'b', 'c'}
+	err = cm.Insert(data, apt.MakeFileInfo("path/to/bc", data))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,19 +57,13 @@ func TestStorage(t *testing.T) {
 		t.Error(`cm.used != 3`)
 	}
 
-	data := []byte{'d', 'a', 't', 'a'}
-	md5sum := md5.Sum(data)
-
-	err = cm.Insert(data, MakeFileInfo("data", data))
+	data = []byte{'d', 'a', 't', 'a'}
+	err = cm.Insert(data, apt.MakeFileInfo("data", data))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	f, err := cm.Lookup(&FileInfo{
-		path:   "data",
-		size:   4,
-		md5sum: md5sum[:],
-	})
+	f, err := cm.Lookup(apt.MakeFileInfo("data", data))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,11 +77,8 @@ func TestStorage(t *testing.T) {
 		t.Error(`bytes.Compare(data, data2) != 0`)
 	}
 
-	_, err = cm.Lookup(&FileInfo{
-		path:   "data",
-		size:   4,
-		md5sum: []byte{},
-	})
+	differentData := []byte{'d', 'a', 't', '.'}
+	_, err = cm.Lookup(apt.MakeFileInfo("data", differentData))
 	if err != ErrNotFound {
 		t.Error(`err != ErrNotFound`)
 	}
@@ -122,17 +106,13 @@ func TestStorageLRU(t *testing.T) {
 
 	cm := NewStorage(dir, 3)
 
-	err = cm.Insert([]byte{'a'}, &FileInfo{
-		path: "path/to/a",
-		size: 1,
-	})
+	dataA := []byte{'a'}
+	err = cm.Insert(dataA, apt.MakeFileInfo("path/to/a", dataA))
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = cm.Insert([]byte{'b', 'c'}, &FileInfo{
-		path: "path/to/bc",
-		size: 2,
-	})
+	dataBC := []byte{'b', 'c'}
+	err = cm.Insert(dataBC, apt.MakeFileInfo("path/to/bc", dataBC))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,10 +121,8 @@ func TestStorageLRU(t *testing.T) {
 	}
 
 	// a and bc will be purged
-	err = cm.Insert([]byte{'d', 'e'}, &FileInfo{
-		path: "path/to/de",
-		size: 2,
-	})
+	dataDE := []byte{'d', 'e'}
+	err = cm.Insert(dataDE, apt.MakeFileInfo("path/to/de", dataDE))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,65 +133,42 @@ func TestStorageLRU(t *testing.T) {
 		t.Error(`cm.used != 2`)
 	}
 
-	_, err = cm.Lookup(&FileInfo{
-		path: "path/to/a",
-		size: 1,
-	})
+	_, err = cm.Lookup(apt.MakeFileInfo("path/to/a", dataA))
 	if err != ErrNotFound {
 		t.Error(`err != ErrNotFound`)
 	}
-	_, err = cm.Lookup(&FileInfo{
-		path: "path/to/bc",
-		size: 2,
-	})
+	_, err = cm.Lookup(apt.MakeFileInfo("path/to/bc", dataBC))
 	if err != ErrNotFound {
 		t.Error(`err != ErrNotFound`)
 	}
 
-	err = cm.Insert([]byte{'a'}, &FileInfo{
-		path: "path/to/a",
-		size: 1,
-	})
+	err = cm.Insert(dataA, apt.MakeFileInfo("path/to/a", dataA))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// touch de
-	_, err = cm.Lookup(&FileInfo{
-		path: "path/to/de",
-		size: 2,
-	})
+	_, err = cm.Lookup(apt.MakeFileInfo("path/to/de", dataDE))
 	if err != nil {
 		t.Error(err)
 	}
 
 	// a will be purged
-	err = cm.Insert([]byte{'f'}, &FileInfo{
-		path: "path/to/f",
-		size: 1,
-	})
+	dataF := []byte{'f'}
+	err = cm.Insert(dataF, apt.MakeFileInfo("path/to/f", dataF))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = cm.Lookup(&FileInfo{
-		path: "path/to/a",
-		size: 1,
-	})
+	_, err = cm.Lookup(apt.MakeFileInfo("path/to/a", dataA))
 	if err != ErrNotFound {
 		t.Error(`err != ErrNotFound`)
 	}
-	_, err = cm.Lookup(&FileInfo{
-		path: "path/to/de",
-		size: 2,
-	})
+	_, err = cm.Lookup(apt.MakeFileInfo("path/to/de", dataDE))
 	if err != nil {
 		t.Error(err)
 	}
-	_, err = cm.Lookup(&FileInfo{
-		path: "path/to/f",
-		size: 1,
-	})
+	_, err = cm.Lookup(apt.MakeFileInfo("path/to/f", dataF))
 	if err != nil {
 		t.Error(err)
 	}
@@ -256,37 +211,23 @@ func TestStorageLoad(t *testing.T) {
 		t.Error(`len(l) != len(files)`)
 	}
 
-	f, err := cm.Lookup(&FileInfo{
-		path: "a",
-		size: 1,
-	})
+	f, err := cm.Lookup(apt.MakeFileInfo("a", files["a"]))
 	if err != nil {
 		t.Error(err)
 	}
 	f.Close()
-	f, err = cm.Lookup(&FileInfo{
-		path: "bc",
-		size: 2,
-	})
+	f, err = cm.Lookup(apt.MakeFileInfo("bc", files["bc"]))
 	if err != nil {
 		t.Error(err)
 	}
 	f.Close()
-	f, err = cm.Lookup(&FileInfo{
-		path: "def",
-		size: 3,
-	})
+	f, err = cm.Lookup(apt.MakeFileInfo("def", files["def"]))
 	if err != nil {
 		t.Error(err)
 	}
 	f.Close()
 
-	sha1sum := sha1.Sum(files["ghij"])
-	f, err = cm.Lookup(&FileInfo{
-		path:    "ghij",
-		size:    4,
-		sha1sum: sha1sum[:],
-	})
+	f, err = cm.Lookup(apt.MakeFileInfo("ghij", files["ghij"]))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -312,34 +253,23 @@ func TestStoragePathTraversal(t *testing.T) {
 
 	cm := NewStorage(dir, 0)
 
-	err = cm.Insert([]byte{'a'}, &FileInfo{
-		path: "/absolute/path",
-		size: 1,
-	})
+	data := []byte{'a'}
+	err = cm.Insert(data, apt.MakeFileInfo("/absolute/path", data))
 	if err != ErrBadPath {
 		t.Error(`/absolute/path must be a bad path`)
 	}
 
-	err = cm.Insert([]byte{'a'}, &FileInfo{
-		path: "./unclean/path",
-		size: 1,
-	})
+	err = cm.Insert(data, apt.MakeFileInfo("./unclean/path", data))
 	if err != ErrBadPath {
 		t.Error(`./unclean/path must be a bad path`)
 	}
 
-	err = cm.Insert([]byte{'a'}, &FileInfo{
-		path: "",
-		size: 1,
-	})
+	err = cm.Insert(data, apt.MakeFileInfo("", data))
 	if err != ErrBadPath {
 		t.Error(`empty path must be a bad path`)
 	}
 
-	err = cm.Insert([]byte{'a'}, &FileInfo{
-		path: ".",
-		size: 1,
-	})
+	err = cm.Insert(data, apt.MakeFileInfo(".", data))
 	if err != ErrBadPath {
 		t.Error(`. must be a bad path`)
 	}

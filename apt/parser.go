@@ -1,4 +1,4 @@
-package aptcacher
+package apt
 
 // This file implements a generic debian control file parser.
 //

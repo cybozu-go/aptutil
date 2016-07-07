@@ -1,4 +1,4 @@
-package aptcacher
+package apt
 
 // This file provides utilities for debian repository indices.
 

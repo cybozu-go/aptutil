@@ -1,4 +1,4 @@
-package aptcacher
+package cacher
 
 import (
 	"fmt"

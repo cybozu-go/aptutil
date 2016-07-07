@@ -11,7 +11,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/BurntSushi/toml"
-	aptcacher "github.com/cybozu-go/go-apt-cacher"
+	"github.com/cybozu-go/go-apt-cacher/cacher"
 	"github.com/cybozu-go/log"
 )
 
@@ -35,7 +35,7 @@ func main() {
 		log.ErrorExit(err)
 	}
 
-	var config aptcacher.CacherConfig
+	var config cacher.Config
 	md, err := toml.DecodeFile(*configPath, &config)
 	if err != nil {
 		log.ErrorExit(err)
@@ -51,7 +51,7 @@ func main() {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	cacher, err := aptcacher.NewCacher(ctx, &config)
+	cc, err := cacher.NewCacher(ctx, &config)
 	if err != nil {
 		log.ErrorExit(err)
 	}
@@ -63,7 +63,7 @@ func main() {
 
 	done := make(chan error, 1)
 	go func() {
-		done <- aptcacher.Serve(ctx, l, cacher)
+		done <- cacher.Serve(ctx, l, cc)
 	}()
 
 	sig := make(chan os.Signal, 10)

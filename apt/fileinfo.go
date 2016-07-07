@@ -1,4 +1,4 @@
-package aptcacher
+package apt
 
 import (
 	"bytes"
@@ -49,16 +49,33 @@ func (fi *FileInfo) Size() uint64 {
 	return fi.size
 }
 
-// MakeFileInfo constructs a FileInfo for a given data.
-func MakeFileInfo(path string, data []byte) *FileInfo {
+// HasChecksum returns true if fi has checksums.
+func (fi *FileInfo) HasChecksum() bool {
+	return fi.md5sum != nil
+}
+
+// CalcChecksums calculates checksums and stores them in fi.
+func (fi *FileInfo) CalcChecksums(data []byte) {
 	md5sum := md5.Sum(data)
 	sha1sum := sha1.Sum(data)
 	sha256sum := sha256.Sum256(data)
+	fi.size = uint64(len(data))
+	fi.md5sum = md5sum[:]
+	fi.sha1sum = sha1sum[:]
+	fi.sha256sum = sha256sum[:]
+}
+
+// MakeFileInfoNoChecksum constructs a FileInfo without calculating checksums.
+func MakeFileInfoNoChecksum(path string, size uint64) *FileInfo {
 	return &FileInfo{
-		path:      path,
-		size:      uint64(len(data)),
-		md5sum:    md5sum[:],
-		sha1sum:   sha1sum[:],
-		sha256sum: sha256sum[:],
+		path: path,
+		size: size,
 	}
+}
+
+// MakeFileInfo constructs a FileInfo for a given data.
+func MakeFileInfo(path string, data []byte) *FileInfo {
+	fi := MakeFileInfoNoChecksum(path, 0)
+	fi.CalcChecksums(data)
+	return fi
 }
