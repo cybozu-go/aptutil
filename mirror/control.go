@@ -89,11 +89,10 @@ func gc(ctx context.Context, c *Config) error {
 		log.Info("removing old mirror", map[string]interface{}{
 			"_path": p,
 		})
-		continue
-		// err := os.RemoveAll(p)
-		// if err != nil {
-		// 	return errors.Wrap(err, "gc")
-		// }
+		err := os.RemoveAll(p)
+		if err != nil {
+			return errors.Wrap(err, "gc")
+		}
 	}
 
 	return nil
