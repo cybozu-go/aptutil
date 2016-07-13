@@ -108,6 +108,9 @@ func NewMirror(t time.Time, id string, c *Config) (*Mirror, error) {
 //
 // This method is intended to be called as goroutine.
 func (m *Mirror) Update(ctx context.Context, ch chan<- error) {
+	log.Info("download Release/InRelease", map[string]interface{}{
+		"_id": m.id,
+	})
 	fiMap, err := m.downloadRelease(ctx)
 	if err != nil {
 		ch <- errors.Wrap(err, m.id)
@@ -120,6 +123,10 @@ func (m *Mirror) Update(ctx context.Context, ch chan<- error) {
 	}
 
 	// download (or reuse) all indices
+	log.Info("download other indices", map[string]interface{}{
+		"_id":      m.id,
+		"_indices": len(fiMap),
+	})
 	err = m.downloadFiles(ctx, fiMap)
 	if err != nil {
 		ch <- errors.Wrap(err, m.id)
@@ -149,6 +156,10 @@ func (m *Mirror) Update(ctx context.Context, ch chan<- error) {
 	}
 
 	// download all files matching the configuration.
+	log.Info("download items", map[string]interface{}{
+		"_id":    m.id,
+		"_items": len(fiMap2),
+	})
 	err = m.downloadFiles(ctx, fiMap2)
 	if err != nil {
 		ch <- errors.Wrap(err, m.id)
@@ -156,6 +167,9 @@ func (m *Mirror) Update(ctx context.Context, ch chan<- error) {
 	}
 
 	// all files are downloaded (or reused)
+	log.Info("saving meta data", map[string]interface{}{
+		"_id": m.id,
+	})
 	err = m.storage.Save()
 	if err != nil {
 		ch <- errors.Wrap(err, m.id)
@@ -178,6 +192,9 @@ func (m *Mirror) Update(ctx context.Context, ch chan<- error) {
 	}
 	DirSync(m.dir)
 
+	log.Info("update succeeded", map[string]interface{}{
+		"_id": m.id,
+	})
 	ch <- nil
 }
 
@@ -206,6 +223,14 @@ func (m *Mirror) download(ctx context.Context,
 		r.err = err
 		return
 	}
+	if log.Enabled(log.LvDebug) {
+		log.Debug("downloaded", map[string]interface{}{
+			"_id":     m.id,
+			"_path":   p,
+			"_status": resp.StatusCode,
+		})
+	}
+
 	r.status = resp.StatusCode
 	data, err := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
@@ -252,10 +277,6 @@ func (m *Mirror) downloadRelease(ctx context.Context) (map[string]*apt.FileInfo,
 			if err != nil {
 				return nil, errors.Wrap(err, "storage.Store")
 			}
-			log.Info("downloaded", map[string]interface{}{
-				"_id":   m.id,
-				"_path": r.path,
-			})
 			if apt.IsSupported(r.path) {
 				fil, err := apt.ExtractFileInfo(r.path, bytes.NewReader(r.data))
 				if err != nil {
@@ -267,13 +288,7 @@ func (m *Mirror) downloadRelease(ctx context.Context) (map[string]*apt.FileInfo,
 			}
 
 		case 400 <= r.status && r.status < 500:
-			if log.Enabled(log.LvDebug) {
-				log.Debug("skip", map[string]interface{}{
-					"_status": r.status,
-					"_path":   r.path,
-					"_id":     m.id,
-				})
-			}
+			continue
 
 		default:
 			return nil, fmt.Errorf("status %d for %s", r.status, r.path)
@@ -286,7 +301,7 @@ func (m *Mirror) downloadRelease(ctx context.Context) (map[string]*apt.FileInfo,
 func (m *Mirror) downloadFiles(ctx context.Context, fiMap map[string]*apt.FileInfo) error {
 	results := make(chan *dlResult, len(fiMap))
 
-	var downloading, downloaded int
+	var reused, downloading, downloaded int
 	for p, fi := range fiMap {
 		if m.current != nil {
 			fi2, fullpath := m.current.Lookup(fi)
@@ -295,10 +310,13 @@ func (m *Mirror) downloadFiles(ctx context.Context, fiMap map[string]*apt.FileIn
 				if err != nil {
 					return errors.Wrap(err, "storage.StoreLink")
 				}
-				log.Info("reuse item", map[string]interface{}{
-					"_id":   m.id,
-					"_path": p,
-				})
+				reused++
+				if log.Enabled(log.LvDebug) {
+					log.Debug("reuse item", map[string]interface{}{
+						"_id":   m.id,
+						"_path": p,
+					})
+				}
 				continue
 			}
 		}
@@ -318,10 +336,6 @@ func (m *Mirror) downloadFiles(ctx context.Context, fiMap map[string]*apt.FileIn
 				if err != nil {
 					return errors.Wrap(err, "storage.Store")
 				}
-				log.Info("downloaded", map[string]interface{}{
-					"_id":   m.id,
-					"_path": r.path,
-				})
 			default:
 				goto DOWNLOAD
 			}
@@ -351,11 +365,13 @@ func (m *Mirror) downloadFiles(ctx context.Context, fiMap map[string]*apt.FileIn
 		if err != nil {
 			return errors.Wrap(err, "storage.Store")
 		}
-		log.Info("downloaded", map[string]interface{}{
-			"_id":   m.id,
-			"_path": r.path,
-		})
 	}
+
+	log.Info("stats", map[string]interface{}{
+		"_id":         m.id,
+		"_reused":     reused,
+		"_downloaded": downloaded,
+	})
 
 	return nil
 }

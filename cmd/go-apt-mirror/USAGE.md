@@ -23,6 +23,11 @@ The default location is `/etc/apt/mirror.toml`.
 
 A sample configuration file is available [here](mirror.toml).
 
+Proxy
+-----
+
+go-apt-mirror uses HTTP proxy as specified in [`ProxyFromEnvironment`](https://golang.org/pkg/net/http/#ProxyFromEnvironment).
+
 Options
 -------
 

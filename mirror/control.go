@@ -27,6 +27,8 @@ func updateMirrors(ctx context.Context, c *Config, mirrors []string) error {
 		ml = append(ml, m)
 	}
 
+	log.Info("update starts", nil)
+
 	ch := make(chan error, len(ml))
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -39,6 +41,8 @@ func updateMirrors(ctx context.Context, c *Config, mirrors []string) error {
 			return err
 		}
 	}
+
+	log.Info("update ends", nil)
 
 	return nil
 }
@@ -56,6 +60,7 @@ func gc(ctx context.Context, c *Config) error {
 		return err
 	}
 
+	// search symlinks and its pointing directories
 	for _, dentry := range dentries {
 		if (dentry.Mode() & os.ModeSymlink) == 0 {
 			continue
@@ -68,6 +73,7 @@ func gc(ctx context.Context, c *Config) error {
 		using[filepath.Base(filepath.Dir(p))] = true
 	}
 
+	// remove unused dentries.
 	for _, dentry := range dentries {
 		if using[dentry.Name()] {
 			continue

@@ -43,8 +43,6 @@ func main() {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	done := make(chan error, 1)
 	go func() {
 		done <- mirror.Run(ctx, &config, flag.Args())
@@ -65,5 +63,6 @@ func main() {
 		signal.Stop(sig)
 		cancel()
 		<-done
+		os.Exit(2)
 	}
 }
