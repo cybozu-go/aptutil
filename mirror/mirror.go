@@ -122,6 +122,12 @@ func (m *Mirror) Update(ctx context.Context, ch chan<- error) {
 		return
 	}
 
+	// WORKAROUND: some (dell) repositories have invalid Release
+	// that contains wrong checksum for itself.  Ignore them.
+	for _, p := range m.mc.ReleaseFiles() {
+		delete(fiMap, p)
+	}
+
 	// download (or reuse) all indices
 	log.Info("download other indices", map[string]interface{}{
 		"_id":      m.id,
