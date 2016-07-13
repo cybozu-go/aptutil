@@ -1,0 +1,22 @@
+dir = "/var/spool/go-apt-mirror"
+max_conns = 10
+
+[mirror.ubuntu]
+url = "http://archive.ubuntu.com/ubuntu"
+suites = ["trusty", "trusty-updates"]
+sections = ["main", "restricted", "universe",
+            "main/debian-installer",
+            "restricted/debian-installer",
+            "universe/debian-installer"]
+mirror_source = true
+architectures = ["amd64", "i386"]
+
+[mirror.security]
+url = "http://security.ubuntu.com/ubuntu"
+suites = ["trusty-security"]
+sections = ["main", "restricted", "universe"]
+architectures = ["amd64"]
+
+[mirror.flat]
+url = "http://my.local.domain/cybozu"
+suites = ["12.04/", "14.04/"]
