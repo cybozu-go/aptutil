@@ -69,7 +69,7 @@ func (fi *FileInfo) CalcChecksums(data []byte) {
 	fi.sha256sum = sha256sum[:]
 }
 
-type FileInfoJson struct {
+type fileInfoJSON struct {
 	Path      string
 	Size      int64
 	MD5Sum    string
@@ -79,7 +79,7 @@ type FileInfoJson struct {
 
 // MarshalJSON implements json.Marshaler
 func (fi *FileInfo) MarshalJSON() ([]byte, error) {
-	var fij FileInfoJson
+	var fij fileInfoJSON
 	fij.Path = fi.path
 	fij.Size = int64(fi.size)
 	if fi.md5sum != nil {
@@ -96,7 +96,7 @@ func (fi *FileInfo) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements json.Unmarshaler
 func (fi *FileInfo) UnmarshalJSON(data []byte) error {
-	var fij FileInfoJson
+	var fij fileInfoJSON
 	if err := json.Unmarshal(data, &fij); err != nil {
 		return err
 	}

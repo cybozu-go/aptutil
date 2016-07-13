@@ -1,7 +1,6 @@
 package cacher
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/BurntSushi/toml"
@@ -17,7 +16,7 @@ func TestConfig(t *testing.T) {
 	}
 
 	if len(md.Undecoded()) > 0 {
-		t.Error(fmt.Sprintf("%#v", md.Undecoded()))
+		t.Errorf("%#v", md.Undecoded())
 	}
 
 	if config.CheckInterval != 10 {
