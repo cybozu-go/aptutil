@@ -11,7 +11,7 @@ const (
 //
 // Use https://github.com/BurntSushi/toml as follows:
 //
-//    var config CacherConfig
+//    var config cacher.Config
 //    md, err := toml.DecodeFile("/path/to/config.toml", &config)
 //    if err != nil {
 //        ...

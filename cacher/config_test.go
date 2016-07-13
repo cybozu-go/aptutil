@@ -17,7 +17,7 @@ func TestConfig(t *testing.T) {
 	}
 
 	if len(md.Undecoded()) > 0 {
-		t.Error(fmt.Printf("%#v", md.Undecoded()))
+		t.Error(fmt.Sprintf("%#v", md.Undecoded()))
 	}
 
 	if config.CheckInterval != 10 {

@@ -120,7 +120,7 @@ func TestGetFilesFromPackages(t *testing.T) {
 	sha1sum, _ := hex.DecodeString("903b3305c86e872db25985f2b686ef8d1c3760cf")
 	sha256sum, _ := hex.DecodeString("cebb641f03510c2c350ea2e94406c4c09708364fa296730e64ecdb1107b380b7")
 	fi := &FileInfo{
-		path:      "ubuntu/pool/c/cybozu-abc_0.2.2-1_amd64.deb",
+		path:      "pool/c/cybozu-abc_0.2.2-1_amd64.deb",
 		size:      102369852,
 		sha1sum:   sha1sum,
 		sha256sum: sha256sum,
@@ -132,7 +132,7 @@ func TestGetFilesFromPackages(t *testing.T) {
 	sha1sum, _ = hex.DecodeString("b89e2f1a9f5efb8b7c1e2e2d8abbab05d7981187")
 	sha256sum, _ = hex.DecodeString("814cec015067fb083e14d95d77c5ec41c11de99180ea518813b7abc88805fa24")
 	fi = &FileInfo{
-		path:      "ubuntu/pool/c/cybozu-fuga_2.0.0.2-1_all.deb",
+		path:      "pool/c/cybozu-fuga_2.0.0.2-1_all.deb",
 		size:      1018650,
 		sha1sum:   sha1sum,
 		sha256sum: sha256sum,
@@ -163,56 +163,56 @@ func TestGetFilesFromSources(t *testing.T) {
 	sha1sum, _ := hex.DecodeString("d89f409cae51a5d424a769560fc1688d2a636d73")
 	sha256sum, _ := hex.DecodeString("3a126eec194457778a477d95a9dd4b8c03d6a95b9c064cddcae63eba2e674797")
 	fi := &FileInfo{
-		path:      "ubuntu/pool/main/a/aalib/aalib_1.4p5-41.dsc",
+		path:      "pool/main/a/aalib/aalib_1.4p5-41.dsc",
 		size:      2078,
 		md5sum:    md5sum,
 		sha1sum:   sha1sum,
 		sha256sum: sha256sum,
 	}
 	if !containsFileInfo(fi, fil) {
-		t.Error(`ubuntu/pool/main/a/aalib/aalib_1.4p5-41.dsc`)
+		t.Error(`pool/main/a/aalib/aalib_1.4p5-41.dsc`)
 	}
 
 	md5sum, _ = hex.DecodeString("9801095c42bba12edebd1902bcf0a990")
 	sha1sum, _ = hex.DecodeString("a23269e950a249d2ef93625837cace45ddbce03b")
 	sha256sum, _ = hex.DecodeString("fbddda9230cf6ee2a4f5706b4b11e2190ae45f5eda1f0409dc4f99b35e0a70ee")
 	fi = &FileInfo{
-		path:      "ubuntu/pool/main/a/aalib/aalib_1.4p5.orig.tar.gz",
+		path:      "pool/main/a/aalib/aalib_1.4p5.orig.tar.gz",
 		size:      391028,
 		md5sum:    md5sum,
 		sha1sum:   sha1sum,
 		sha256sum: sha256sum,
 	}
 	if !containsFileInfo(fi, fil) {
-		t.Error(`ubuntu/pool/main/a/aalib/aalib_1.4p5.orig.tar.gz`)
+		t.Error(`pool/main/a/aalib/aalib_1.4p5.orig.tar.gz`)
 	}
 
 	md5sum, _ = hex.DecodeString("1d276558e27a29e2d0bbe6deac1788dc")
 	sha1sum, _ = hex.DecodeString("bfe56ce2a2171c6602f4d34a4d548a20deb2e628")
 	sha256sum, _ = hex.DecodeString("0b606e2bf1826e77c73c0efb9b0cb2f5f89ea422cc02a10fa00866075635cf2c")
 	fi = &FileInfo{
-		path:      "ubuntu/pool/main/a/aalib/aalib_1.4p5-41.debian.tar.gz",
+		path:      "pool/main/a/aalib/aalib_1.4p5-41.debian.tar.gz",
 		size:      16718,
 		md5sum:    md5sum,
 		sha1sum:   sha1sum,
 		sha256sum: sha256sum,
 	}
 	if !containsFileInfo(fi, fil) {
-		t.Error(`ubuntu/pool/main/a/aalib/aalib_1.4p5-41.debian.tar.gz`)
+		t.Error(`pool/main/a/aalib/aalib_1.4p5-41.debian.tar.gz`)
 	}
 
 	md5sum, _ = hex.DecodeString("7dedd7a510fcf4cd2b0def4b45ab94a7")
 	sha1sum, _ = hex.DecodeString("fcaf0374f5f054c2884dbab6f126b8187ba66181")
 	sha256sum, _ = hex.DecodeString("8f44b8be08a562ac7bee3bd5e0273e6a860bfe1a434ea2d93d42e94d339cacf4")
 	fi = &FileInfo{
-		path:      "ubuntu/pool/main/z/zsh/zsh_5.0.2-3ubuntu6.dsc",
+		path:      "pool/main/z/zsh/zsh_5.0.2-3ubuntu6.dsc",
 		size:      2911,
 		md5sum:    md5sum,
 		sha1sum:   sha1sum,
 		sha256sum: sha256sum,
 	}
 	if !containsFileInfo(fi, fil) {
-		t.Error(`ubuntu/pool/main/z/zsh/zsh_5.0.2-3ubuntu6.dsc`)
+		t.Error(`pool/main/z/zsh/zsh_5.0.2-3ubuntu6.dsc`)
 	}
 }
 

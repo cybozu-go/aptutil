@@ -1,6 +1,6 @@
 # Directory to store mirrored files and other control files.
 # The directory must be writable by go-apt-mirror.
-dir = /var/spool/go-apt-mirror
+dir = "/var/spool/go-apt-mirror"
 
 # Maximum concurrent connections for an upstream server.
 # Setting this 0 disables limit on the number of connections.
@@ -11,23 +11,23 @@ max_conns = 10
 # "xxx" must match this regexp: ^[a-z0-9_-]+$
 #
 # url:            The repository base URL.
-# include_source: true to mirror source archives.
-# architectures:  list of architectures to mirror.  "all" is always mirrored.
 # suites:         list of suites to mirror.  see sources.list(5).
 # sections:       list of sections to mirror.  see sources.list(5).
+# include_source: true to mirror source archives.
+# architectures:  list of architectures to mirror.  "all" is always mirrored.
 [mirror.ubuntu]
 url = "http://archive.ubuntu.com/ubuntu"
-include_source = true
-architectures = ["amd64", "i386"]
 suites = ["trusty", "trusty-updates"]
 sections = ["main", "restricted", "universe",
             "main/debian-installer",
             "restricted/debian-installer",
             "universe/debian-installer"]
+mirror_source = true
+architectures = ["amd64", "i386"]
 
 [mirror.security]
 url = "http://security.ubuntu.com/ubuntu"
-include_source = false
-architectures = ["amd64", "i386"]
 suites = ["trusty-security"]
 sections = ["main", "restricted", "universe"]
+mirror_source = false
+architectures = ["amd64", "i386"]

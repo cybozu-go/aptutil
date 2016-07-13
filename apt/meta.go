@@ -158,8 +158,6 @@ func getFilesFromRelease(p string, r io.Reader) ([]*FileInfo, error) {
 // getFilesFromPackages parses Packages file and returns
 // a list of *FileInfo pointed in the file.
 func getFilesFromPackages(p string, r io.Reader) ([]*FileInfo, error) {
-	prefix := strings.SplitN(p, "/", 2)[0]
-
 	var l []*FileInfo
 	parser := NewParser(r)
 
@@ -176,7 +174,7 @@ func getFilesFromPackages(p string, r io.Reader) ([]*FileInfo, error) {
 		if !ok {
 			return nil, errors.New("no Filename in " + p)
 		}
-		p := path.Join(prefix, path.Clean(filename[0]))
+		fpath := path.Clean(filename[0])
 
 		strsize, ok := d["Size"]
 		if !ok {
@@ -188,7 +186,7 @@ func getFilesFromPackages(p string, r io.Reader) ([]*FileInfo, error) {
 		}
 
 		fi := &FileInfo{
-			path: p,
+			path: fpath,
 			size: size,
 		}
 		if csum, ok := d["MD5sum"]; ok {
@@ -221,8 +219,6 @@ func getFilesFromPackages(p string, r io.Reader) ([]*FileInfo, error) {
 // getFilesFromSources parses Sources file and returns
 // a list of *FileInfo pointed in the file.
 func getFilesFromSources(p string, r io.Reader) ([]*FileInfo, error) {
-	prefix := strings.SplitN(p, "/", 2)[0]
-
 	var l []*FileInfo
 	parser := NewParser(r)
 
@@ -251,7 +247,7 @@ func getFilesFromSources(p string, r io.Reader) ([]*FileInfo, error) {
 				return nil, errors.Wrap(err, "parseChecksum for Files")
 			}
 
-			fpath := path.Join(prefix, dir[0], fname)
+			fpath := path.Clean(path.Join(dir[0], fname))
 			fi := &FileInfo{
 				path:   fpath,
 				size:   size,
@@ -266,7 +262,7 @@ func getFilesFromSources(p string, r io.Reader) ([]*FileInfo, error) {
 				return nil, errors.Wrap(err, "parseChecksum for Checksums-Sha1")
 			}
 
-			fpath := path.Join(prefix, dir[0], fname)
+			fpath := path.Clean(path.Join(dir[0], fname))
 			fi, ok := m[fpath]
 			if !ok {
 				return nil, errors.New("mismatch between Files and Checksums-Sha1 in " + p)
@@ -280,7 +276,7 @@ func getFilesFromSources(p string, r io.Reader) ([]*FileInfo, error) {
 				return nil, errors.Wrap(err, "parseChecksum for Checksums-Sha256")
 			}
 
-			fpath := path.Join(prefix, dir[0], fname)
+			fpath := path.Clean(path.Join(dir[0], fname))
 			fi, ok := m[fpath]
 			if !ok {
 				return nil, errors.New("mismatch between Files and Checksums-Sha256 in " + p)
@@ -306,7 +302,7 @@ func getFilesFromIndex(p string, r io.Reader) ([]*FileInfo, error) {
 // Release, Packages, or Sources and return a list of *FileInfo
 // listed in the file.
 //
-// p is the local path.
+// p is the relative path of the file.
 func ExtractFileInfo(p string, r io.Reader) ([]*FileInfo, error) {
 	if !IsMeta(p) {
 		return nil, errors.New("not a meta data file: " + p)

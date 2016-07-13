@@ -5,11 +5,15 @@ Synopsis
 --------
 
 ```
-go-apt-mirror [options]
+go-apt-mirror [options] [MIRROR MIRROR2...]
 ```
 
 go-apt-mirror is a console application.  
 Run it in your shell, or use `sudo -u USER` to run it as USER.
+
+If `MIRROR` arguments are given, go-apt-mirror updates only the specified
+Debian repository mirrors.  With no arguments, it updates all mirrors
+defined in the configuration file.
 
 Configuration
 -------------

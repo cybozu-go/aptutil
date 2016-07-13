@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -125,13 +126,17 @@ func NewCacher(ctx context.Context, config *Config) (*Cacher, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "meta.Lookup")
 		}
-		fil, err := apt.ExtractFileInfo(fi.Path(), f)
+		t := strings.SplitN(fi.Path(), "/", 2)
+		if len(t) != 2 {
+			panic("there should always be a prefix!")
+		}
+		fil, err := apt.ExtractFileInfo(t[1], f)
 		f.Close()
 		if err != nil {
 			return nil, errors.Wrap(err, "ExtractFileInfo("+fi.Path()+")")
 		}
 		for _, fi2 := range fil {
-			c.info[fi2.Path()] = fi2
+			c.info[path.Join(t[0], fi2.Path())] = fi2
 		}
 	}
 
@@ -306,9 +311,14 @@ func (c *Cacher) download(p string, u *url.URL, valid *apt.FileInfo) {
 
 	storage := c.items
 	var fil []*apt.FileInfo
+	t := strings.SplitN(path.Clean(p), "/", 2)
+	if len(t) != 2 {
+		panic("path must has a prefix: " + p)
+	}
+
 	if apt.IsMeta(p) {
 		storage = c.meta
-		fil, err = apt.ExtractFileInfo(p, bytes.NewReader(body))
+		fil, err = apt.ExtractFileInfo(t[1], bytes.NewReader(body))
 		if err != nil {
 			log.Error("invalid meta data", map[string]interface{}{
 				"_path": p,
@@ -331,7 +341,7 @@ func (c *Cacher) download(p string, u *url.URL, valid *apt.FileInfo) {
 	}
 
 	for _, fi2 := range fil {
-		c.info[fi2.Path()] = fi2
+		c.info[path.Join(t[0], fi2.Path())] = fi2
 	}
 	if apt.IsMeta(p) {
 		_, ok := c.info[p]

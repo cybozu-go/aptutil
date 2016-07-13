@@ -5,6 +5,10 @@ import (
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+
+	"github.com/pkg/errors"
 )
 
 // FileInfo is a set of meta data of a file.
@@ -63,6 +67,57 @@ func (fi *FileInfo) CalcChecksums(data []byte) {
 	fi.md5sum = md5sum[:]
 	fi.sha1sum = sha1sum[:]
 	fi.sha256sum = sha256sum[:]
+}
+
+type FileInfoJson struct {
+	Path      string
+	Size      int64
+	MD5Sum    string
+	SHA1Sum   string
+	SHA256Sum string
+}
+
+// MarshalJSON implements json.Marshaler
+func (fi *FileInfo) MarshalJSON() ([]byte, error) {
+	var fij FileInfoJson
+	fij.Path = fi.path
+	fij.Size = int64(fi.size)
+	if fi.md5sum != nil {
+		fij.MD5Sum = hex.EncodeToString(fi.md5sum)
+	}
+	if fi.sha1sum != nil {
+		fij.SHA1Sum = hex.EncodeToString(fi.sha1sum)
+	}
+	if fi.sha256sum != nil {
+		fij.SHA256Sum = hex.EncodeToString(fi.sha256sum)
+	}
+	return json.Marshal(&fij)
+}
+
+// UnmarshalJSON implements json.Unmarshaler
+func (fi *FileInfo) UnmarshalJSON(data []byte) error {
+	var fij FileInfoJson
+	if err := json.Unmarshal(data, &fij); err != nil {
+		return err
+	}
+	fi.path = fij.Path
+	fi.size = uint64(fij.Size)
+	md5sum, err := hex.DecodeString(fij.MD5Sum)
+	if err != nil {
+		return errors.Wrap(err, "UnmarshalJSON for "+fij.Path)
+	}
+	sha1sum, err := hex.DecodeString(fij.SHA1Sum)
+	if err != nil {
+		return errors.Wrap(err, "UnmarshalJSON for "+fij.Path)
+	}
+	sha256sum, err := hex.DecodeString(fij.SHA256Sum)
+	if err != nil {
+		return errors.Wrap(err, "UnmarshalJSON for "+fij.Path)
+	}
+	fi.md5sum = md5sum
+	fi.sha1sum = sha1sum
+	fi.sha256sum = sha256sum
+	return nil
 }
 
 // MakeFileInfoNoChecksum constructs a FileInfo without calculating checksums.

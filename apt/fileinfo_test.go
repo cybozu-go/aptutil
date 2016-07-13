@@ -5,6 +5,8 @@ import (
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
+	"encoding/json"
+	"fmt"
 	"testing"
 )
 
@@ -133,5 +135,29 @@ func TestMakeFileInfo(t *testing.T) {
 	sha256sum := sha256.Sum256(data)
 	if bytes.Compare(sha256sum[:], fi.sha256sum) != 0 {
 		t.Error(`bytes.Compare(sha256sum[:], fi.sha256sum) != 0`)
+	}
+}
+
+func TestFileInfoJSON(t *testing.T) {
+	t.Parallel()
+
+	path := "/abc/def"
+	data := []byte{'a', 'b', 'c', 'd', 'e', 'f'}
+
+	fi := MakeFileInfo(path, data)
+	j, err := json.Marshal(fi)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fi2 := new(FileInfo)
+	err = json.Unmarshal(j, fi2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !fi.Same(fi2) {
+		t.Error(`!fi.Same(fi2)`)
+		t.Log(fmt.Sprintf("%#v", fi2))
 	}
 }
