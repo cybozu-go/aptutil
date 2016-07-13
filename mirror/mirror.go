@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/cybozu-go/go-apt-cacher/apt"
+	"github.com/cybozu-go/aptutil/apt"
 	"github.com/cybozu-go/log"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"

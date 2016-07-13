@@ -8,11 +8,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"golang.org/x/net/context"
-
 	"github.com/BurntSushi/toml"
-	"github.com/cybozu-go/go-apt-cacher/cacher"
+	"github.com/cybozu-go/aptutil/cacher"
 	"github.com/cybozu-go/log"
+	"golang.org/x/net/context"
 )
 
 const (

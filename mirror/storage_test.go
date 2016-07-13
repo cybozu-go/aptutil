@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/cybozu-go/go-apt-cacher/apt"
+	"github.com/cybozu-go/aptutil/apt"
 )
 
 func TestStorageBadConstruction(t *testing.T) {

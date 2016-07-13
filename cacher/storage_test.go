@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/cybozu-go/go-apt-cacher/apt"
+	"github.com/cybozu-go/aptutil/apt"
 )
 
 func TestStorage(t *testing.T) {

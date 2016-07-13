@@ -8,7 +8,7 @@ import (
 	"syscall"
 
 	"github.com/BurntSushi/toml"
-	"github.com/cybozu-go/go-apt-cacher/mirror"
+	"github.com/cybozu-go/aptutil/mirror"
 	"github.com/cybozu-go/log"
 	"golang.org/x/net/context"
 )

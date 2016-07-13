@@ -4,9 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"golang.org/x/net/context"
-
 	"github.com/BurntSushi/toml"
+	"golang.org/x/net/context"
 )
 
 func TestMirror(t *testing.T) {
