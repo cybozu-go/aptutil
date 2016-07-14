@@ -10,11 +10,11 @@ max_conns = 10
 # [mirror.xxx] defines a mirror configuration for a debian repository.
 # "xxx" must match this regexp: ^[a-z0-9_-]+$
 #
-# url:            The repository base URL.
-# suites:         list of suites to mirror.  see sources.list(5).
-# sections:       list of sections to mirror.  see sources.list(5).
-# include_source: true to mirror source archives.
-# architectures:  list of architectures to mirror.  "all" is always mirrored.
+# url:           The repository base URL.
+# suites:        List of suites to mirror.  see sources.list(5).
+# sections:      List of sections to mirror.  see sources.list(5).
+# mirror_source: true to mirror source archives.  Default is false.
+# architectures: List of architectures to mirror.  "all" is always mirrored.
 [mirror.ubuntu]
 url = "http://archive.ubuntu.com/ubuntu"
 suites = ["trusty", "trusty-updates"]
