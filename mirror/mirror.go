@@ -18,7 +18,8 @@ import (
 )
 
 const (
-	timestampFormat = "20060102_150405"
+	timestampFormat  = "20060102_150405"
+	progressInterval = 5 * time.Minute
 )
 
 var (
@@ -317,8 +318,20 @@ func (m *Mirror) downloadFiles(ctx context.Context,
 	fiMap map[string]*apt.FileInfo, allowMissing bool) error {
 	results := make(chan *dlResult, len(fiMap))
 
+	loggedAt := time.Now()
+
 	var reused, downloading, downloaded int
 	for p, fi := range fiMap {
+		now := time.Now()
+		if now.Sub(loggedAt) > progressInterval {
+			loggedAt = now
+			log.Info("download progress", map[string]interface{}{
+				"_id":         m.id,
+				"_total":      len(fiMap),
+				"_reused":     reused,
+				"_downloaded": downloaded,
+			})
+		}
 		if m.current != nil {
 			fi2, fullpath := m.current.Lookup(fi)
 			if fi2 != nil {
@@ -346,6 +359,10 @@ func (m *Mirror) downloadFiles(ctx context.Context,
 					return errors.Wrap(r.err, "download")
 				}
 				if allowMissing && r.status == http.StatusNotFound {
+					log.Warn("missing file", map[string]interface{}{
+						"_id":   m.id,
+						"_path": r.path,
+					})
 					continue
 				}
 				if r.status != http.StatusOK {
@@ -378,6 +395,10 @@ func (m *Mirror) downloadFiles(ctx context.Context,
 			return errors.Wrap(r.err, "download")
 		}
 		if allowMissing && r.status == http.StatusNotFound {
+			log.Warn("missing file", map[string]interface{}{
+				"_id":   m.id,
+				"_path": r.path,
+			})
 			continue
 		}
 		if r.status != http.StatusOK {
