@@ -20,6 +20,7 @@ import (
 const (
 	timestampFormat  = "20060102_150405"
 	progressInterval = 5 * time.Minute
+	httpRetries      = 3
 )
 
 var (
@@ -234,8 +235,21 @@ func (m *Mirror) download(ctx context.Context,
 		m.semaphore <- struct{}{}
 	}()
 
+	var retries int
+
+RETRY:
+	if retries > 0 {
+		log.Warn("retrying download", map[string]interface{}{
+			"_id":   m.id,
+			"_path": p,
+		})
+	}
 	resp, err := ctxhttp.Get(ctx, m.client, m.mc.Resolve(p).String())
 	if err != nil {
+		if retries < httpRetries {
+			retries++
+			goto RETRY
+		}
 		r.err = err
 		return
 	}
@@ -251,8 +265,16 @@ func (m *Mirror) download(ctx context.Context,
 	data, err := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
+		if retries < httpRetries {
+			retries++
+			goto RETRY
+		}
 		r.err = err
 		return
+	}
+	if r.status >= 500 && retries < httpRetries {
+		retries++
+		goto RETRY
 	}
 	if r.status != 200 {
 		return
