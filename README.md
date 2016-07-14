@@ -3,7 +3,7 @@ This repository also contains a mirroring utility **go-apt-mirror**.
 
 [![Build Status](https://travis-ci.org/cybozu-go/aptutil.svg?branch=master)](https://travis-ci.org/cybozu-go/aptutil)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)][MIT]
-[![GoDoc](https://godoc.org/github.com/cybozu-go/aptutil?status.png)](https://godoc.org/github.com/cybozu-go/aptutil)
+[![GoDoc](https://godoc.org/github.com/cybozu-go/aptutil?status.svg)](https://godoc.org/github.com/cybozu-go/aptutil)
 
 Features
 --------
