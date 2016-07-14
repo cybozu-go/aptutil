@@ -133,7 +133,7 @@ func (m *Mirror) Update(ctx context.Context, ch chan<- error) {
 		"_id":      m.id,
 		"_indices": len(fiMap),
 	})
-	err = m.downloadFiles(ctx, fiMap)
+	err = m.downloadFiles(ctx, fiMap, true)
 	if err != nil {
 		ch <- errors.Wrap(err, m.id)
 		return
@@ -166,7 +166,7 @@ func (m *Mirror) Update(ctx context.Context, ch chan<- error) {
 		"_id":    m.id,
 		"_items": len(fiMap2),
 	})
-	err = m.downloadFiles(ctx, fiMap2)
+	err = m.downloadFiles(ctx, fiMap2, false)
 	if err != nil {
 		ch <- errors.Wrap(err, m.id)
 		return
@@ -304,7 +304,8 @@ func (m *Mirror) downloadRelease(ctx context.Context) (map[string]*apt.FileInfo,
 	return fiMap, nil
 }
 
-func (m *Mirror) downloadFiles(ctx context.Context, fiMap map[string]*apt.FileInfo) error {
+func (m *Mirror) downloadFiles(ctx context.Context,
+	fiMap map[string]*apt.FileInfo, allowMissing bool) error {
 	results := make(chan *dlResult, len(fiMap))
 
 	var reused, downloading, downloaded int
@@ -335,9 +336,14 @@ func (m *Mirror) downloadFiles(ctx context.Context, fiMap map[string]*apt.FileIn
 				if r.err != nil {
 					return errors.Wrap(r.err, "download")
 				}
-				if r.status != http.StatusOK {
-					return fmt.Errorf("status %d for %s", r.status, r.path)
+				if r.status == http.StatusOK {
+					goto OK
 				}
+				if allowMissing && r.status == http.StatusNotFound {
+					goto OK
+				}
+				return fmt.Errorf("status %d for %s", r.status, r.path)
+			OK:
 				err := m.storage.Store(r.fi, r.data)
 				if err != nil {
 					return errors.Wrap(err, "storage.Store")
