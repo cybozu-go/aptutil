@@ -146,7 +146,11 @@ func (m *Mirror) Update(ctx context.Context, ch chan<- error) {
 			continue
 		}
 		f, err := m.storage.Open(p)
-		if err != nil {
+		switch {
+		case err == nil:
+		case os.IsNotExist(err):
+			continue
+		default:
 			ch <- errors.Wrap(err, m.id)
 			return
 		}
@@ -157,6 +161,11 @@ func (m *Mirror) Update(ctx context.Context, ch chan<- error) {
 			return
 		}
 		for _, fi2 := range fil {
+			fi2path := fi2.Path()
+			if _, ok := fiMap[fi2path]; ok {
+				// already included in Release/InRelease
+				continue
+			}
 			fiMap2[fi2.Path()] = fi2
 		}
 	}
@@ -336,14 +345,12 @@ func (m *Mirror) downloadFiles(ctx context.Context,
 				if r.err != nil {
 					return errors.Wrap(r.err, "download")
 				}
-				if r.status == http.StatusOK {
-					goto OK
-				}
 				if allowMissing && r.status == http.StatusNotFound {
-					goto OK
+					continue
 				}
-				return fmt.Errorf("status %d for %s", r.status, r.path)
-			OK:
+				if r.status != http.StatusOK {
+					return fmt.Errorf("status %d for %s", r.status, r.path)
+				}
 				err := m.storage.Store(r.fi, r.data)
 				if err != nil {
 					return errors.Wrap(err, "storage.Store")
@@ -369,6 +376,9 @@ func (m *Mirror) downloadFiles(ctx context.Context,
 		downloaded++
 		if r.err != nil {
 			return errors.Wrap(r.err, "download")
+		}
+		if allowMissing && r.status == http.StatusNotFound {
+			continue
 		}
 		if r.status != http.StatusOK {
 			return fmt.Errorf("status %d for %s", r.status, r.path)
