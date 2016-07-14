@@ -4,15 +4,11 @@ import (
 	"os"
 	"os/exec"
 	"testing"
+	"time"
 )
 
 func TestFlock(t *testing.T) {
 	t.Parallel()
-
-	// container-based image cannot run this test.
-	if os.Getenv("TRAVIS") == "true" {
-		t.Skip()
-	}
 
 	cmd := exec.Command("flock", "t/mirror.toml", "sleep", "0.2")
 	err := cmd.Start()
@@ -20,6 +16,7 @@ func TestFlock(t *testing.T) {
 		t.Skip()
 		return
 	}
+	time.Sleep(100 * time.Millisecond)
 
 	f, err := os.Open("t/mirror.toml")
 	if err != nil {
