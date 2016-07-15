@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"time"
@@ -128,6 +129,22 @@ func (m *Mirror) Update(ctx context.Context, ch chan<- error) {
 	// that contains wrong checksum for itself.  Ignore them.
 	for _, p := range m.mc.ReleaseFiles() {
 		delete(fiMap, p)
+	}
+
+	// WORKAROUND: some (zabbix) repositories returns wrong contents
+	// for non-existent files such as Sources (looks like the body of
+	// Sources.gz is returned).
+	if !m.mc.Source {
+		fiMap2 := make(map[string]*apt.FileInfo)
+		for p, fi := range fiMap {
+			base := path.Base(p)
+			base = base[0 : len(base)-len(path.Ext(base))]
+			if base == "Sources" {
+				continue
+			}
+			fiMap2[p] = fi
+		}
+		fiMap = fiMap2
 	}
 
 	// download (or reuse) all indices
