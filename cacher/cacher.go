@@ -27,6 +27,15 @@ const (
 	requestTimeout = 30 * time.Minute
 )
 
+// addPrefix add prefix for each *FileInfo in fil.
+func addPrefix(prefix string, fil []*apt.FileInfo) []*apt.FileInfo {
+	ret := make([]*apt.FileInfo, 0, len(fil))
+	for _, fi := range fil {
+		ret = append(ret, fi.AddPrefix(prefix))
+	}
+	return ret
+}
+
 // Cacher downloads and caches APT indices and deb files.
 type Cacher struct {
 	meta          *Storage
@@ -135,8 +144,9 @@ func NewCacher(ctx context.Context, config *Config) (*Cacher, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "ExtractFileInfo("+fi.Path()+")")
 		}
+		fil = addPrefix(t[0], fil)
 		for _, fi2 := range fil {
-			c.info[path.Join(t[0], fi2.Path())] = fi2
+			c.info[fi2.Path()] = fi2
 		}
 	}
 
@@ -326,6 +336,7 @@ func (c *Cacher) download(p string, u *url.URL, valid *apt.FileInfo) {
 			})
 			// do not return; we accept broken meta data as is.
 		}
+		fil = addPrefix(t[0], fil)
 	}
 
 	c.fiLock.Lock()
@@ -341,7 +352,7 @@ func (c *Cacher) download(p string, u *url.URL, valid *apt.FileInfo) {
 	}
 
 	for _, fi2 := range fil {
-		c.info[path.Join(t[0], fi2.Path())] = fi2
+		c.info[fi2.Path()] = fi2
 	}
 	if apt.IsMeta(p) {
 		_, ok := c.info[p]

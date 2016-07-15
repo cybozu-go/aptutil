@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"path"
 
 	"github.com/pkg/errors"
 )
@@ -67,6 +68,17 @@ func (fi *FileInfo) CalcChecksums(data []byte) {
 	fi.md5sum = md5sum[:]
 	fi.sha1sum = sha1sum[:]
 	fi.sha256sum = sha256sum[:]
+}
+
+// AddPrefix creates a new FileInfo by prepending prefix to the path.
+func (fi *FileInfo) AddPrefix(prefix string) *FileInfo {
+	return &FileInfo{
+		path:      path.Join(path.Clean(prefix), fi.path),
+		size:      fi.size,
+		md5sum:    fi.md5sum,
+		sha1sum:   fi.sha1sum,
+		sha256sum: fi.sha256sum,
+	}
 }
 
 type fileInfoJSON struct {
