@@ -10,8 +10,8 @@ Features
 
 ### go-apt-cacher
 
-* Automatic checksum validation for cached files  
-    Cached files will **never** be broken!
+* Checksum awareness  
+  go-apt-cacher recognizes APT indices and checks downloaded files automatically.
 * Reverse proxy for http and https repositories
 * LRU-based cache eviction
 * Smart caching strategy specialized for APT
@@ -19,8 +19,11 @@ Features
 ### go-apt-mirror
 
 * Atomic update of mirrors  
-    Clients will never see incomplete mirrors.
+    Clients will never see incomplete/inconsistent mirrors.
 * Checksum validation of mirrored files
+* Ultra fast update compared to rsync
+* Parallel download
+* Partial mirror
 
 Build
 -----

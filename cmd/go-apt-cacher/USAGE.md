@@ -23,6 +23,9 @@ As go programs cannot run as so-called _daemon_, running go-apt-cacher
 in background shall be done via process manager such as [systemd][] or
 [upstart][].
 
+Increase `nofile` resource limit to accept massive number of clients.
+For systemd, it is [`LimitNOFILE` directive](http://serverfault.com/a/678861/126630).
+
 go-apt-cacher does not require root privileges.  Users are strongly
 advised to run go-apt-cacher with a non-root account.
 
