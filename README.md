@@ -33,8 +33,7 @@ Build
 Use Go 1.6 or better.
 
 ```
-go get -u github.com/cybozu-go/aptutil
-go install github.com/cybozu-go/aptutil/...
+go get -u github.com/cybozu-go/aptutil/...
 ```
 
 Usage
