@@ -1,13 +1,24 @@
 sudo: false
 language: go
 go:
-  - 1.6
-  - tip
+- 1.6
+- tip
 
 before_install:
-  - go get github.com/golang/lint/golint
+- go get github.com/golang/lint/golint
 
 script:
-  - go test -v ./...
-  - go vet -x ./...
-  - $HOME/gopath/bin/golint ./... | xargs -r false
+- go test -v ./...
+- go vet -x ./...
+- $HOME/gopath/bin/golint ./... | xargs -r false
+- go build -o go-apt-mirror ./cmd/go-apt-mirror/...
+- go build -o go-apt-cacher ./cmd/go-apt-cacher/...
+deploy:
+  provider: releases
+  api_key:
+    secure: N6KmWwDRjkGVXc/xBguTzjtbmO8XKwG4NBdspj4katr1/WqaKAIa4iyyi97LBQ6XbMvtLEphw/FJPfg1JEs07RklNbKZgzXOw4izvNJuFJUZbfQYAaaoWQ1A1yeYYPLFfwx9jd83uAm45LT2S9wNUnTsabMTGuSGtEkjoYEmTq8A75reYLEOLYK26sq5aoHBHXUm3rv0GQ1yqKh4YkEUW+SXPBxCrtALszhAUkNisKzIr3gY4uHyUuGbOP6tKwrYkipTQ9doWIb7K6/zbJeg+6o0MSD7r5WfHSG8BwXjNhUMtc+F7H2RuSppPmlx9E1FSpg8iRzuXdGWOOIKds8hCKpA7mFQ5hJ4NByDvrwGwayKyY2+1uJHMTFIH21S8aKqIGeBMK58Ff6ciyFZrJaN06bHlZMUaWYhrhnfBXBTvUTEsZC62OxPZUuVJfgUMhKx5ufCT8LkntNDtoavE3RlyBgWIewCMTg95jCBLvuE5auWNkt2/mFPkLVE0laepiQ7r8AlFw8i2ge+sr99vi33fb6xaeeXsZi5Ej3ZcI0vodypLyZUIvxSYsuwwhM4r24/mLiR2Ude6x8BeGdAVi5B3a8mkSE6bg3pSzEaXr7veh21r3MmJAnxfIhEfoTDyX+Du727qWWyxH5jGBEUrBlFll9S5auwP2gfl/efMAgHEyE=
+  file:
+    - go-apt-cacher
+    - go-apt-mirror
+  on:
+    repo: cybozu-go/aptutil
