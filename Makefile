@@ -1,14 +1,17 @@
-GOOS    ?= $(shell go env GOOS)
-GOARCH  ?= $(shell go env GOARCH)
+GOOS       ?= $(shell go env GOOS)
+GOARCH     ?= $(shell go env GOARCH)
 export XC_OS = $(GOOS)
 export XC_ARCH = $(GOARCH)
 
-SUFFIX  := $(GOOS)_$(GOARCH)
+SUFFIX     := $(GOOS)_$(GOARCH)
 
-CMD     := $(notdir $(wildcard cmd/*))
-ARCHVIE := $(addsuffix _$(SUFFIX).tgz,$(CMD))
+# When the tag name is not available, use the commit hash
+TRAVIS_TAG ?= $(shell git rev-parse --short HEAD)
 
-GO_PKGS := \
+CMD        := $(notdir $(wildcard cmd/*))
+ARCHVIE    := $(addsuffix _$(TRAVIS_TAG)_$(SUFFIX).tgz,$(CMD))
+
+GO_PKGS    := \
 	github.com/golang/lint/golint \
 	github.com/pkg/errors \
 	github.com/cybozu-go/log \
@@ -33,7 +36,7 @@ bin: $(patsubst %,pkg/%_$(SUFFIX),$(CMD))
 pkg/%_$(SUFFIX): cmd/%
 	@sh -c "'$(CURDIR)/scripts/build.sh' $*"
 
-%_$(SUFFIX).tgz: pkg/%_$(SUFFIX)
+%_$(TRAVIS_TAG)_$(SUFFIX).tgz: pkg/%_$(SUFFIX)
 	cp cmd/$*/*.toml $<
 	tar -c -z -C pkg/ -f $@ $(notdir $<)
 
