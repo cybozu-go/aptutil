@@ -10,6 +10,12 @@ ARCHVIE := $(addsuffix _$(SUFFIX).tgz,$(CMD))
 
 GO_PKGS := \
 	github.com/golang/lint/golint \
+	github.com/pkg/errors \
+	github.com/cybozu-go/log \
+	github.com/facebookgo/httpdown \
+	golang.org/x/net/context \
+	golang.org/x/net/context/ctxhttp \
+	github.com/BurntSushi/toml \
 	github.com/mitchellh/gox
 
 
