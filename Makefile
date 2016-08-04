@@ -38,7 +38,7 @@ clean:
 	rm -rf pkg/ *.tgz
 
 bootstrap:
-    go get -u ./...
+	go get -u ./...
 	go get $(GO_PKGS)
 
 .PHONY: test archive bin clean bootstrap
