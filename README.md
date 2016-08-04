@@ -1,4 +1,4 @@
-[![GitHub release](https://img.shields.io/github/release/cybozu-go/aptutil.svg?maxAge=2592000)](https://github.com/cybozu-go/aptutil/releases)
+[![GitHub release](https://img.shields.io/github/release/cybozu-go/aptutil.svg?maxAge=60)](https://github.com/cybozu-go/aptutil/releases)
 [![GoDoc](https://godoc.org/github.com/cybozu-go/aptutil?status.svg)][godoc]
 [![Build Status](https://travis-ci.org/cybozu-go/aptutil.svg?branch=master)](https://travis-ci.org/cybozu-go/aptutil)
 [![Go Report Card](https://goreportcard.com/badge/github.com/cybozu-go/aptutil)](https://goreportcard.com/report/github.com/cybozu-go/aptutil)
