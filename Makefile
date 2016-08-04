@@ -37,7 +37,7 @@ clean:
 bootstrap:
 	@for tool in $(GO_PKGS) ; do \
 		echo "Installing $${tool}..."; \
-		go get -u $${tool}; \
+		go get $${tool}; \
 	done
 
 .PHONY: test archive bin clean bootstrap
