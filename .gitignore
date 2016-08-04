@@ -13,3 +13,7 @@ GPATH
 GRTAGS
 GTAGS
 tags
+
+# Archives
+pkg/
+*.tgz
