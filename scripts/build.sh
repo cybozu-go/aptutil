@@ -25,10 +25,9 @@ XC_ARCH="${XC_ARCH:-$(go env GOARCH)}"
 
 echo "Building..."
 
-gox \
+${GOPATH}/bin/gox \
     -os="${XC_OS}" \
     -arch="${XC_ARCH}" \
     -output "pkg/${TARGET}_{{.OS}}_{{.Arch}}/${TARGET}" \
     ./cmd/${TARGET}
-
 

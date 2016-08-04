@@ -13,12 +13,6 @@ ARCHVIE    := $(addsuffix _$(TRAVIS_TAG)_$(SUFFIX).tgz,$(CMD))
 
 GO_PKGS    := \
 	github.com/golang/lint/golint \
-	github.com/pkg/errors \
-	github.com/cybozu-go/log \
-	github.com/facebookgo/httpdown \
-	golang.org/x/net/context \
-	golang.org/x/net/context/ctxhttp \
-	github.com/BurntSushi/toml \
 	github.com/mitchellh/gox
 
 
@@ -34,7 +28,7 @@ archive: $(ARCHVIE)
 bin: $(patsubst %,pkg/%_$(SUFFIX),$(CMD))
 
 pkg/%_$(SUFFIX): cmd/%
-	@sh -c "'$(CURDIR)/scripts/build.sh' $*"
+	./scripts/build.sh $*
 
 %_$(TRAVIS_TAG)_$(SUFFIX).tgz: pkg/%_$(SUFFIX)
 	cp cmd/$*/*.toml $<
@@ -44,9 +38,7 @@ clean:
 	rm -rf pkg/ *.tgz
 
 bootstrap:
-	@for tool in $(GO_PKGS) ; do \
-		echo "Installing $${tool}..."; \
-		go get $${tool}; \
-	done
+    go get -u ./...
+	go get $(GO_PKGS)
 
 .PHONY: test archive bin clean bootstrap
