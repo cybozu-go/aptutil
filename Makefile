@@ -31,7 +31,7 @@ pkg/%_$(SUFFIX): cmd/%
 	./scripts/build.sh $*
 
 %_$(TRAVIS_TAG)_$(SUFFIX).tgz: pkg/%_$(SUFFIX)
-	cp cmd/$*/*.toml cmd/$*/USAGE LICENSE $<
+	cp cmd/$*/*.toml cmd/$*/USAGE.md LICENSE $<
 	tar -c -z -C pkg/ -f $@ $(notdir $<)
 
 clean:
