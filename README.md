@@ -1,4 +1,4 @@
-[![GitHub release](https://img.shields.io/github/release/cybozu-go/aptutil.svg?maxAge=60)](https://github.com/cybozu-go/aptutil/releases)
+[![GitHub release](https://img.shields.io/github/release/cybozu-go/aptutil.svg?maxAge=60)][releases]
 [![GoDoc](https://godoc.org/github.com/cybozu-go/aptutil?status.svg)][godoc]
 [![Build Status](https://travis-ci.org/cybozu-go/aptutil.svg?branch=master)](https://travis-ci.org/cybozu-go/aptutil)
 [![Go Report Card](https://goreportcard.com/badge/github.com/cybozu-go/aptutil)](https://goreportcard.com/report/github.com/cybozu-go/aptutil)
@@ -29,14 +29,12 @@ Features
 * Parallel download
 * Partial mirror
 
-Build
------
+Install
+-------
 
-Use Go 1.6 or better.
+Pre-built binaries are available on [releases][].
 
-```
-go get -u github.com/cybozu-go/aptutil/...
-```
+Unpack one and follow usage instructions.
 
 Usage
 -----
@@ -44,10 +42,24 @@ Usage
 * [go-apt-cacher](cmd/go-apt-cacher/USAGE.md)
 * [go-apt-mirror](cmd/go-apt-mirror/USAGE.md)
 
+
+Build
+-----
+
+Use Go 1.6 or better.
+
+Run the command below exactly as shown, including the ellipsis.
+They are significant - see `go help packages`.
+
+```
+go get -u github.com/cybozu-go/aptutil/...
+```
+
 License
 -------
 
 [MIT][]
 
-[MIT]: https://opensource.org/licenses/MIT
+[releases]: https://github.com/cybozu-go/aptutil/releases
 [godoc]: https://godoc.org/github.com/cybozu-go/aptutil
+[MIT]: https://opensource.org/licenses/MIT

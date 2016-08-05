@@ -30,4 +30,3 @@ ${GOPATH}/bin/gox \
     -arch="${XC_ARCH}" \
     -output "pkg/${TARGET}_{{.OS}}_{{.Arch}}/${TARGET}" \
     ./cmd/${TARGET}
-
