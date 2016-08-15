@@ -60,6 +60,13 @@ License
 
 [MIT][]
 
+Authors & Contributors
+----------------------
+
+* Yamamoto, Hirotaka [@ymmt2005](https://github.com/ymmt2005)
+* Yutani, Hiroaki [@yutannihilation](https://github.com/yutannihilation)
+* [@xipmix](https://github.com/xipmix)
+
 [releases]: https://github.com/cybozu-go/aptutil/releases
 [godoc]: https://godoc.org/github.com/cybozu-go/aptutil
 [MIT]: https://opensource.org/licenses/MIT

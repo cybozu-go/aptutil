@@ -4,7 +4,10 @@ How to configure and run go-apt-cacher
 Configuration
 -------------
 
-go-apt-cacher reads a configuration file at start up.
+go-apt-cacher reads a configuration file at start up.  If you change
+the configuration file, the change will not take effect until you
+restart go-apt-cacher.
+
 The default location of the file is `/etc/go-apt-cacher.toml`.
 
 A sample [TOML][] file is available [here](go-apt-cacher.toml).
