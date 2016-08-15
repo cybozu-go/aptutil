@@ -1,6 +1,6 @@
 # Interval to check updates for Release/InRelease files.
-# Default: 15 seconds
-check_interval = 15
+# Default: 600 seconds
+check_interval = 600
 
 # Cache period for bad HTTP response statuses.
 # Default: 3 seconds

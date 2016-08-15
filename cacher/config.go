@@ -1,7 +1,7 @@
 package cacher
 
 const (
-	defaultCheckInterval = 15
+	defaultCheckInterval = 600
 	defaultCachePeriod   = 3
 	defaultCacheCapacity = 1
 	defaultMaxConns      = 10
@@ -20,7 +20,7 @@ type Config struct {
 	// CheckInterval specifies interval in seconds to check updates for
 	// Release/InRelease files.
 	//
-	// Default is 15 seconds.
+	// Default is 600 seconds.
 	CheckInterval int `toml:"check_interval"`
 
 	// CachePeriod specifies the period to cache bad HTTP response statuses.
