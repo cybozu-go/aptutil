@@ -28,7 +28,7 @@ archive: $(ARCHVIE)
 bin: $(patsubst %,pkg/%_$(SUFFIX),$(CMD))
 
 pkg/%_$(SUFFIX): cmd/%
-	./scripts/build.sh $*
+	CGO_ENABLED=0 ./scripts/build.sh $*
 
 %_$(TRAVIS_TAG)_$(SUFFIX).tgz: pkg/%_$(SUFFIX)
 	cp cmd/$*/*.toml cmd/$*/USAGE.md LICENSE $<
