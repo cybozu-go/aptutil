@@ -46,7 +46,7 @@ Usage
 Build
 -----
 
-Use Go 1.6 or better.
+Use Go 1.7 or better.
 
 Run the command below exactly as shown, including the ellipsis.
 They are significant - see `go help packages`.
