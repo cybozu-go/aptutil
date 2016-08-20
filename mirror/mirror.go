@@ -109,7 +109,7 @@ func NewMirror(t time.Time, id string, c *Config) (*Mirror, error) {
 // Update updates mirrored files.
 func (m *Mirror) Update(ctx context.Context) error {
 	log.Info("download Release/InRelease", map[string]interface{}{
-		"_id": m.id,
+		"repo": m.id,
 	})
 	fiMap, err := m.downloadRelease(ctx)
 	if err != nil {
@@ -144,8 +144,8 @@ func (m *Mirror) Update(ctx context.Context) error {
 
 	// download (or reuse) all indices
 	log.Info("download other indices", map[string]interface{}{
-		"_id":      m.id,
-		"_indices": len(fiMap),
+		"repo":    m.id,
+		"indices": len(fiMap),
 	})
 	err = m.downloadFiles(ctx, fiMap, true)
 	if err != nil {
@@ -183,8 +183,8 @@ func (m *Mirror) Update(ctx context.Context) error {
 
 	// download all files matching the configuration.
 	log.Info("download items", map[string]interface{}{
-		"_id":    m.id,
-		"_items": len(fiMap2),
+		"repo":  m.id,
+		"items": len(fiMap2),
 	})
 	err = m.downloadFiles(ctx, fiMap2, false)
 	if err != nil {
@@ -193,7 +193,7 @@ func (m *Mirror) Update(ctx context.Context) error {
 
 	// all files are downloaded (or reused)
 	log.Info("saving meta data", map[string]interface{}{
-		"_id": m.id,
+		"repo": m.id,
 	})
 	err = m.storage.Save()
 	if err != nil {
@@ -215,7 +215,7 @@ func (m *Mirror) Update(ctx context.Context) error {
 	DirSync(m.dir)
 
 	log.Info("update succeeded", map[string]interface{}{
-		"_id": m.id,
+		"repo": m.id,
 	})
 	return nil
 }
@@ -245,8 +245,8 @@ func (m *Mirror) download(ctx context.Context,
 RETRY:
 	if retries > 0 {
 		log.Warn("retrying download", map[string]interface{}{
-			"_id":   m.id,
-			"_path": p,
+			"repo": m.id,
+			"path": p,
 		})
 		time.Sleep(time.Duration(1<<(retries-1)) * time.Second)
 	}
@@ -270,9 +270,9 @@ RETRY:
 	}
 	if log.Enabled(log.LvDebug) {
 		log.Debug("downloaded", map[string]interface{}{
-			"_id":     m.id,
-			"_path":   p,
-			"_status": resp.StatusCode,
+			"repo":               m.id,
+			"path":               p,
+			log.FnHTTPStatusCode: resp.StatusCode,
 		})
 	}
 
@@ -363,10 +363,10 @@ func (m *Mirror) downloadFiles(ctx context.Context,
 		if now.Sub(loggedAt) > progressInterval {
 			loggedAt = now
 			log.Info("download progress", map[string]interface{}{
-				"_id":         m.id,
-				"_total":      len(fiMap),
-				"_reused":     reused,
-				"_downloaded": downloaded,
+				"repo":       m.id,
+				"total":      len(fiMap),
+				"reused":     reused,
+				"downloaded": downloaded,
 			})
 		}
 		if m.current != nil {
@@ -379,8 +379,8 @@ func (m *Mirror) downloadFiles(ctx context.Context,
 				reused++
 				if log.Enabled(log.LvDebug) {
 					log.Debug("reuse item", map[string]interface{}{
-						"_id":   m.id,
-						"_path": p,
+						"repo": m.id,
+						"path": p,
 					})
 				}
 				continue
@@ -397,8 +397,8 @@ func (m *Mirror) downloadFiles(ctx context.Context,
 				}
 				if allowMissing && r.status == http.StatusNotFound {
 					log.Warn("missing file", map[string]interface{}{
-						"_id":   m.id,
-						"_path": r.path,
+						"repo": m.id,
+						"path": r.path,
 					})
 					continue
 				}
@@ -433,8 +433,8 @@ func (m *Mirror) downloadFiles(ctx context.Context,
 		}
 		if allowMissing && r.status == http.StatusNotFound {
 			log.Warn("missing file", map[string]interface{}{
-				"_id":   m.id,
-				"_path": r.path,
+				"repo": m.id,
+				"path": r.path,
 			})
 			continue
 		}
@@ -448,9 +448,9 @@ func (m *Mirror) downloadFiles(ctx context.Context,
 	}
 
 	log.Info("stats", map[string]interface{}{
-		"_id":         m.id,
-		"_reused":     reused,
-		"_downloaded": downloaded,
+		"repo":       m.id,
+		"reused":     reused,
+		"downloaded": downloaded,
 	})
 
 	return nil

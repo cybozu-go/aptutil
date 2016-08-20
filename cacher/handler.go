@@ -3,6 +3,7 @@ package cacher
 import (
 	"fmt"
 	"mime"
+	"net"
 	"net/http"
 	"path"
 	"strconv"
@@ -29,7 +30,7 @@ func (c cacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if log.Enabled(log.LvDebug) {
 		log.Debug("request path", map[string]interface{}{
-			"_path": p,
+			"path": p,
 		})
 	}
 
@@ -66,12 +67,22 @@ func (c cacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 LOG:
-	took := time.Now().Sub(accepted)
-	log.Info("[http]", map[string]interface{}{
-		"_method":      r.Method,
-		"_elapsed":     took.String(),
-		"_path":        p,
-		"_status":      status,
-		"_remote_addr": r.RemoteAddr,
-	})
+	fields := map[string]interface{}{
+		log.FnType:           "access",
+		log.FnResponseTime:   time.Since(accepted).Seconds(),
+		log.FnProtocol:       r.Proto,
+		log.FnHTTPStatusCode: status,
+		log.FnHTTPMethod:     r.Method,
+		log.FnURL:            r.RequestURI,
+		log.FnHTTPHost:       r.Host,
+	}
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		fields[log.FnRemoteAddress] = ip
+	}
+	ua := r.Header.Get("User-Agent")
+	if len(ua) > 0 {
+		fields[log.FnHTTPUserAgent] = ua
+	}
+	log.Info("HTTP", fields)
 }

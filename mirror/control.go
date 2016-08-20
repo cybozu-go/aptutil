@@ -90,7 +90,7 @@ func gc(ctx context.Context, c *Config) error {
 
 		p := filepath.Join(c.Dir, dentry.Name())
 		log.Info("removing old mirror", map[string]interface{}{
-			"_path": p,
+			"path": p,
 		})
 		err := os.RemoveAll(p)
 		if err != nil {

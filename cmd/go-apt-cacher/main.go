@@ -29,7 +29,7 @@ func main() {
 	}
 	if len(md.Undecoded()) > 0 {
 		log.Error("invalid config keys", map[string]interface{}{
-			"_keys": fmt.Sprintf("%#v", md.Undecoded()),
+			"keys": fmt.Sprintf("%#v", md.Undecoded()),
 		})
 		os.Exit(1)
 	}
