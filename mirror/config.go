@@ -5,6 +5,12 @@ import (
 	"net/url"
 	"path"
 	"strings"
+
+	"github.com/cybozu-go/cmd"
+)
+
+const (
+	defaultMaxConns = 10
 )
 
 type tomlURL struct {
@@ -150,13 +156,21 @@ func (mc *MirrConfig) MatchingIndex(p string) bool {
 //
 // Use https://github.com/BurntSushi/toml as follows:
 //
-//    var config mirror.Config
-//    md, err := toml.DecodeFile("/path/to/config.toml", &config)
+//    config := mirror.NewConfig()
+//    md, err := toml.DecodeFile("/path/to/config.toml", config)
 //    if err != nil {
 //        ...
 //    }
 type Config struct {
 	Dir      string                 `toml:"dir"`
 	MaxConns int                    `toml:"max_conns"`
+	Log      cmd.LogConfig          `toml:"log"`
 	Mirrors  map[string]*MirrConfig `toml:"mirror"`
+}
+
+// NewConfig creates Config with default values.
+func NewConfig() *Config {
+	return &Config{
+		MaxConns: defaultMaxConns,
+	}
 }

@@ -1,11 +1,11 @@
 package mirror
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"golang.org/x/net/context"
 )
 
 func TestMirror(t *testing.T) {
@@ -29,9 +29,8 @@ func TestMirror(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	ch := make(chan error, 1)
-	m.Update(ctx, ch)
-	if err := <-ch; err != nil {
+	err = m.Update(ctx)
+	if err != nil {
 		t.Error(err)
 	}
 }

@@ -2,6 +2,7 @@ package mirror
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -14,8 +15,6 @@ import (
 	"github.com/cybozu-go/aptutil/apt"
 	"github.com/cybozu-go/log"
 	"github.com/pkg/errors"
-	"golang.org/x/net/context"
-	"golang.org/x/net/context/ctxhttp"
 )
 
 const (
@@ -108,21 +107,17 @@ func NewMirror(t time.Time, id string, c *Config) (*Mirror, error) {
 }
 
 // Update updates mirrored files.
-//
-// This method is intended to be called as goroutine.
-func (m *Mirror) Update(ctx context.Context, ch chan<- error) {
+func (m *Mirror) Update(ctx context.Context) error {
 	log.Info("download Release/InRelease", map[string]interface{}{
 		"_id": m.id,
 	})
 	fiMap, err := m.downloadRelease(ctx)
 	if err != nil {
-		ch <- errors.Wrap(err, m.id)
-		return
+		return errors.Wrap(err, m.id)
 	}
 
 	if len(fiMap) == 0 {
-		ch <- errors.New(m.id + ": found no Release/InRelease")
-		return
+		return errors.New(m.id + ": found no Release/InRelease")
 	}
 
 	// WORKAROUND: some (dell) repositories have invalid Release
@@ -154,8 +149,7 @@ func (m *Mirror) Update(ctx context.Context, ch chan<- error) {
 	})
 	err = m.downloadFiles(ctx, fiMap, true)
 	if err != nil {
-		ch <- errors.Wrap(err, m.id)
-		return
+		return errors.Wrap(err, m.id)
 	}
 
 	// extract file information
@@ -170,14 +164,12 @@ func (m *Mirror) Update(ctx context.Context, ch chan<- error) {
 		case os.IsNotExist(err):
 			continue
 		default:
-			ch <- errors.Wrap(err, m.id)
-			return
+			return errors.Wrap(err, m.id)
 		}
 		fil, err := apt.ExtractFileInfo(p, f)
 		f.Close()
 		if err != nil {
-			ch <- errors.Wrap(err, m.id)
-			return
+			return errors.Wrap(err, m.id)
 		}
 		for _, fi2 := range fil {
 			fi2path := fi2.Path()
@@ -196,8 +188,7 @@ func (m *Mirror) Update(ctx context.Context, ch chan<- error) {
 	})
 	err = m.downloadFiles(ctx, fiMap2, false)
 	if err != nil {
-		ch <- errors.Wrap(err, m.id)
-		return
+		return errors.Wrap(err, m.id)
 	}
 
 	// all files are downloaded (or reused)
@@ -206,8 +197,7 @@ func (m *Mirror) Update(ctx context.Context, ch chan<- error) {
 	})
 	err = m.storage.Save()
 	if err != nil {
-		ch <- errors.Wrap(err, m.id)
-		return
+		return errors.Wrap(err, m.id)
 	}
 
 	// replace the symlink atomically
@@ -215,21 +205,19 @@ func (m *Mirror) Update(ctx context.Context, ch chan<- error) {
 	os.Remove(tname)
 	err = os.Symlink(filepath.Join(m.storage.Dir(), m.id), tname)
 	if err != nil {
-		ch <- errors.Wrap(err, m.id)
-		return
+		return errors.Wrap(err, m.id)
 	}
 	DirSync(m.dir)
 	err = os.Rename(tname, filepath.Join(m.dir, m.id))
 	if err != nil {
-		ch <- errors.Wrap(err, m.id)
-		return
+		return errors.Wrap(err, m.id)
 	}
 	DirSync(m.dir)
 
 	log.Info("update succeeded", map[string]interface{}{
 		"_id": m.id,
 	})
-	ch <- nil
+	return nil
 }
 
 type dlResult struct {
@@ -262,7 +250,16 @@ RETRY:
 		})
 		time.Sleep(time.Duration(1<<(retries-1)) * time.Second)
 	}
-	resp, err := ctxhttp.Get(ctx, m.client, m.mc.Resolve(p).String())
+
+	req := &http.Request{
+		Method:     "GET",
+		URL:        m.mc.Resolve(p),
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		Header:     make(http.Header),
+	}
+	resp, err := m.client.Do(req.WithContext(ctx))
 	if err != nil {
 		if retries < httpRetries {
 			retries++

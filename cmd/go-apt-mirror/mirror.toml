@@ -7,6 +7,12 @@ dir = "/var/spool/go-apt-mirror"
 # Default: 10
 max_conns = 10
 
+# log specifies logging configurations.
+# Details at https://godoc.org/github.com/cybozu-go/cmd#LogConfig
+[log]
+level = "info"
+format = "plain"
+
 # [mirror.xxx] defines a mirror configuration for a debian repository.
 # "xxx" must match this regexp: ^[a-z0-9_-]+$
 #

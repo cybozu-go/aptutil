@@ -1,21 +1,22 @@
 package mirror
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/cybozu-go/cmd"
 	"github.com/cybozu-go/log"
 	"github.com/pkg/errors"
-	"golang.org/x/net/context"
 )
 
 const (
 	lockFilename = ".lock"
 )
 
-func updateMirrors(ctx context.Context, c *Config, mirrors []string) error {
+func updateMirrors(c *Config, mirrors []string) error {
 	t := time.Now()
 
 	var ml []*Mirror
@@ -29,21 +30,23 @@ func updateMirrors(ctx context.Context, c *Config, mirrors []string) error {
 
 	log.Info("update starts", nil)
 
-	ch := make(chan error, len(ml))
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	// run goroutines in a sub environment.
+	env := cmd.NewEnvironment(cmd.Context())
+
 	for _, m := range ml {
-		go m.Update(ctx, ch)
+		env.Go(m.Update)
 	}
-	for i := 0; i < len(ml); i++ {
-		err := <-ch
-		if err != nil {
-			return err
-		}
+	env.Stop()
+	err := env.Wait()
+
+	if err != nil {
+		log.Error("update failed", map[string]interface{}{
+			"error": err.Error(),
+		})
+		return err
 	}
 
 	log.Info("update ends", nil)
-
 	return nil
 }
 
@@ -105,7 +108,7 @@ func gc(ctx context.Context, c *Config) error {
 // mirrors is a list of mirror IDs defined in the configuration file
 // (or keys in c.Mirrors).  If mirrors is an empty list, all mirrors
 // will be updated.
-func Run(ctx context.Context, c *Config, mirrors []string) error {
+func Run(c *Config, mirrors []string) error {
 	lockFile := filepath.Join(c.Dir, lockFilename)
 	f, err := os.Open(lockFile)
 	switch {
@@ -133,9 +136,9 @@ func Run(ctx context.Context, c *Config, mirrors []string) error {
 		}
 	}
 
-	err = updateMirrors(ctx, c, mirrors)
+	err = updateMirrors(c, mirrors)
 	if err != nil {
 		return err
 	}
-	return gc(ctx, c)
+	return gc(cmd.Context(), c)
 }

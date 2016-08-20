@@ -10,8 +10,8 @@ import (
 func TestConfig(t *testing.T) {
 	t.Parallel()
 
-	var c Config
-	md, err := toml.DecodeFile("t/mirror.toml", &c)
+	c := NewConfig()
+	md, err := toml.DecodeFile("t/mirror.toml", c)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -23,8 +23,12 @@ func TestConfig(t *testing.T) {
 	if c.Dir != "/var/spool/go-apt-mirror" {
 		t.Error(`c.Dir != "/var/spool/go-apt-mirror"`)
 	}
-	if c.MaxConns != 10 {
-		t.Error(`c.MaxConns != 10`)
+	if c.MaxConns != defaultMaxConns {
+		t.Error(`c.MaxConns != defaultMaxConns`)
+	}
+
+	if c.Log.Level != "error" {
+		t.Error(`c.Log.Level != "error"`)
 	}
 
 	if len(c.Mirrors) != 3 {
