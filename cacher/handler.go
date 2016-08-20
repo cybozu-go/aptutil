@@ -3,7 +3,6 @@ package cacher
 import (
 	"fmt"
 	"mime"
-	"net"
 	"net/http"
 	"path"
 	"strconv"
@@ -25,7 +24,6 @@ func (c cacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accepted := time.Now()
 	p := path.Clean(r.URL.Path[1:])
 
 	if log.Enabled(log.LvDebug) {
@@ -49,13 +47,13 @@ func (c cacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
 			var zeroTime time.Time
 			http.ServeContent(w, r, path.Base(p), zeroTime, f)
-			goto LOG
+			return
 		}
 		stat, err := f.Stat()
 		if err != nil {
 			status = http.StatusInternalServerError
 			http.Error(w, err.Error(), status)
-			goto LOG
+			return
 		}
 		ct := mime.TypeByExtension(path.Ext(p))
 		if ct == "" {
@@ -65,24 +63,4 @@ func (c cacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", strconv.FormatInt(stat.Size(), 10))
 		w.WriteHeader(http.StatusOK)
 	}
-
-LOG:
-	fields := map[string]interface{}{
-		log.FnType:           "access",
-		log.FnResponseTime:   time.Since(accepted).Seconds(),
-		log.FnProtocol:       r.Proto,
-		log.FnHTTPStatusCode: status,
-		log.FnHTTPMethod:     r.Method,
-		log.FnURL:            r.RequestURI,
-		log.FnHTTPHost:       r.Host,
-	}
-	ip, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		fields[log.FnRemoteAddress] = ip
-	}
-	ua := r.Header.Get("User-Agent")
-	if len(ua) > 0 {
-		fields[log.FnHTTPUserAgent] = ua
-	}
-	log.Info("HTTP", fields)
 }
