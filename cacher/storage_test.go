@@ -178,10 +178,10 @@ func TestStorageLoad(t *testing.T) {
 	t.Parallel()
 
 	files := map[string][]byte{
-		"a":    []byte{'a'},
-		"bc":   []byte{'b', 'c'},
-		"def":  []byte{'d', 'e', 'f'},
-		"ghij": []byte{'g', 'h', 'i', 'j'},
+		"a":    {'a'},
+		"bc":   {'b', 'c'},
+		"def":  {'d', 'e', 'f'},
+		"ghij": {'g', 'h', 'i', 'j'},
 	}
 
 	dir, err := ioutil.TempDir("", "gotest")

@@ -38,8 +38,8 @@ Options
 | Option | Default | Description |
 | ------ | ------- | ----------- |
 | `-f`   | `/etc/go-apt-cacher.toml` | Configuration file path. |
-| `-s`   | `:3142` | Listen address. |
-| `-l`   | `info`  | Log level [`critical|error|warning|info|debug`] |
+
+As `go-apt-cacher` uses [github.com/cybozu-go/cmd](https://github.com/cybozu-go/cmd), flags provided by `cmd` is also available.
 
 /etc/apt/sources.list
 ---------------------

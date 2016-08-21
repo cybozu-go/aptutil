@@ -1,6 +1,9 @@
 package cacher
 
+import "github.com/cybozu-go/cmd"
+
 const (
+	defaultAddress       = ":3142"
 	defaultCheckInterval = 600
 	defaultCachePeriod   = 3
 	defaultCacheCapacity = 1
@@ -11,12 +14,17 @@ const (
 //
 // Use https://github.com/BurntSushi/toml as follows:
 //
-//    var config cacher.Config
-//    md, err := toml.DecodeFile("/path/to/config.toml", &config)
+//    config := cacher.NewConfig()
+//    md, err := toml.DecodeFile("/path/to/config.toml", config)
 //    if err != nil {
 //        ...
 //    }
 type Config struct {
+	// Addr is the listening address of HTTP server.
+	//
+	// Default is ":3142".
+	Addr string `toml:"listen_address"`
+
 	// CheckInterval specifies interval in seconds to check updates for
 	// Release/InRelease files.
 	//
@@ -49,6 +57,20 @@ type Config struct {
 	// Zero disables limit on the number of connections.
 	MaxConns int `toml:"max_conns"`
 
+	// Log is cmd.LogConfig
+	Log cmd.LogConfig `toml:"log"`
+
 	// Mapping specifies mapping between prefixes and APT URLs.
 	Mapping map[string]string `toml:"mapping"`
+}
+
+// NewConfig creates Config with default values.
+func NewConfig() *Config {
+	return &Config{
+		Addr:          defaultAddress,
+		CheckInterval: defaultCheckInterval,
+		CachePeriod:   defaultCachePeriod,
+		CacheCapacity: defaultCacheCapacity,
+		MaxConns:      defaultMaxConns,
+	}
 }

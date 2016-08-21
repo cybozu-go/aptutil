@@ -24,12 +24,11 @@ func (c cacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accepted := time.Now()
 	p := path.Clean(r.URL.Path[1:])
 
 	if log.Enabled(log.LvDebug) {
 		log.Debug("request path", map[string]interface{}{
-			"_path": p,
+			"path": p,
 		})
 	}
 
@@ -48,13 +47,13 @@ func (c cacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
 			var zeroTime time.Time
 			http.ServeContent(w, r, path.Base(p), zeroTime, f)
-			goto LOG
+			return
 		}
 		stat, err := f.Stat()
 		if err != nil {
 			status = http.StatusInternalServerError
 			http.Error(w, err.Error(), status)
-			goto LOG
+			return
 		}
 		ct := mime.TypeByExtension(path.Ext(p))
 		if ct == "" {
@@ -64,14 +63,4 @@ func (c cacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", strconv.FormatInt(stat.Size(), 10))
 		w.WriteHeader(http.StatusOK)
 	}
-
-LOG:
-	took := time.Now().Sub(accepted)
-	log.Info("[http]", map[string]interface{}{
-		"_method":      r.Method,
-		"_elapsed":     took.String(),
-		"_path":        p,
-		"_status":      status,
-		"_remote_addr": r.RemoteAddr,
-	})
 }

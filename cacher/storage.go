@@ -116,11 +116,11 @@ func (cm *Storage) maint() {
 		cm.used -= e.Size()
 		if err := os.Remove(filepath.Join(cm.dir, e.FilePath())); err != nil {
 			log.Warn("Storage.maint", map[string]interface{}{
-				"_err": err.Error(),
+				"error": err.Error(),
 			})
 		}
 		log.Info("removed", map[string]interface{}{
-			"_path": e.Path(),
+			"path": e.Path(),
 		})
 	}
 }
@@ -171,7 +171,7 @@ func (cm *Storage) Load() error {
 		cm.lru = append(cm.lru, e)
 		cm.cache[subpath] = e
 		log.Debug("Storage.Load", map[string]interface{}{
-			"_path": subpath,
+			"path": subpath,
 		})
 		return nil
 	}
@@ -243,7 +243,7 @@ func (cm *Storage) Insert(data []byte, fi *apt.FileInfo) error {
 				return err
 			}
 			log.Warn("cache file was removed already", map[string]interface{}{
-				"_path": p,
+				"path": p,
 			})
 		}
 		cm.used -= existing.Size()
@@ -251,7 +251,7 @@ func (cm *Storage) Insert(data []byte, fi *apt.FileInfo) error {
 		delete(cm.cache, p)
 		if log.Enabled(log.LvDebug) {
 			log.Debug("deleted existing item", map[string]interface{}{
-				"_path": p,
+				"path": p,
 			})
 		}
 	}
@@ -346,7 +346,7 @@ func (cm *Storage) Delete(p string) error {
 			return err
 		}
 		log.Warn("cached file was already removed", map[string]interface{}{
-			"_path": p,
+			"path": p,
 		})
 	}
 
@@ -354,7 +354,7 @@ func (cm *Storage) Delete(p string) error {
 	heap.Remove(cm, e.index)
 	delete(cm.cache, p)
 	log.Info("deleted item", map[string]interface{}{
-		"_path": p,
+		"path": p,
 	})
 	return nil
 }

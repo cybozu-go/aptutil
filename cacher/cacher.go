@@ -5,6 +5,7 @@ package cacher
 
 import (
 	"bytes"
+	"context"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -18,8 +19,6 @@ import (
 	"github.com/cybozu-go/aptutil/apt"
 	"github.com/cybozu-go/log"
 	"github.com/pkg/errors"
-	"golang.org/x/net/context"
-	"golang.org/x/net/context/ctxhttp"
 )
 
 const (
@@ -60,15 +59,11 @@ type Cacher struct {
 
 // NewCacher constructs Cacher.
 func NewCacher(ctx context.Context, config *Config) (*Cacher, error) {
+	if config.CheckInterval == 0 {
+		return nil, errors.New("invaild check_interval")
+	}
 	checkInterval := time.Duration(config.CheckInterval) * time.Second
-	if checkInterval == 0 {
-		checkInterval = defaultCheckInterval * time.Second
-	}
-
 	cachePeriod := time.Duration(config.CachePeriod) * time.Second
-	if cachePeriod == 0 {
-		cachePeriod = defaultCachePeriod * time.Second
-	}
 
 	metaDir := filepath.Clean(config.MetaDirectory)
 	if !filepath.IsAbs(metaDir) {
@@ -84,10 +79,10 @@ func NewCacher(ctx context.Context, config *Config) (*Cacher, error) {
 		return nil, errors.New("meta_dir and cache_dir must be different")
 	}
 
-	capacity := uint64(config.CacheCapacity) * gib
-	if capacity == 0 {
-		capacity = defaultCacheCapacity * gib
+	if config.CacheCapacity <= 0 {
+		return nil, errors.New("cache_capacity must be > 0")
 	}
+	capacity := uint64(config.CacheCapacity) * gib
 
 	meta := NewStorage(metaDir, 0)
 	cache := NewStorage(cacheDir, capacity)
@@ -206,7 +201,7 @@ func (c *Cacher) maintRelease(p string, withGPG bool) {
 
 	if log.Enabled(log.LvDebug) {
 		log.Debug("maintRelease", map[string]interface{}{
-			"_path": p,
+			"path": p,
 		})
 	}
 
@@ -287,11 +282,19 @@ func (c *Cacher) download(p string, u *url.URL, valid *apt.FileInfo) {
 	ctx, cancel := context.WithTimeout(c.ctx, requestTimeout)
 	defer cancel()
 
-	resp, err := ctxhttp.Get(ctx, c.client, u.String())
+	req := &http.Request{
+		Method:     "GET",
+		URL:        u,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		Header:     make(http.Header),
+	}
+	resp, err := c.client.Do(req.WithContext(ctx))
 	if err != nil {
 		log.Warn("GET failed", map[string]interface{}{
-			"_url": u.String(),
-			"_err": err.Error(),
+			"url":   u.String(),
+			"error": err.Error(),
 		})
 		return
 	}
@@ -305,8 +308,8 @@ func (c *Cacher) download(p string, u *url.URL, valid *apt.FileInfo) {
 
 	if err != nil {
 		log.Warn("GET failed", map[string]interface{}{
-			"_url": u.String(),
-			"_err": err.Error(),
+			"url":   u.String(),
+			"error": err.Error(),
 		})
 		return
 	}
@@ -314,7 +317,7 @@ func (c *Cacher) download(p string, u *url.URL, valid *apt.FileInfo) {
 	fi := apt.MakeFileInfo(p, body)
 	if valid != nil && !valid.Same(fi) {
 		log.Warn("downloaded data is not valid", map[string]interface{}{
-			"_url": u.String(),
+			"url": u.String(),
 		})
 		return
 	}
@@ -331,8 +334,8 @@ func (c *Cacher) download(p string, u *url.URL, valid *apt.FileInfo) {
 		fil, err = apt.ExtractFileInfo(t[1], bytes.NewReader(body))
 		if err != nil {
 			log.Error("invalid meta data", map[string]interface{}{
-				"_path": p,
-				"_err":  err.Error(),
+				"path":  p,
+				"error": err.Error(),
 			})
 			// do not return; we accept broken meta data as is.
 		}
@@ -344,8 +347,8 @@ func (c *Cacher) download(p string, u *url.URL, valid *apt.FileInfo) {
 
 	if err := storage.Insert(body, fi); err != nil {
 		log.Error("could not save an item", map[string]interface{}{
-			"_path": p,
-			"_err":  err.Error(),
+			"path":  p,
+			"error": err.Error(),
 		})
 		// panic because go-apt-cacher cannot continue working
 		panic(err)
@@ -363,7 +366,7 @@ func (c *Cacher) download(p string, u *url.URL, valid *apt.FileInfo) {
 	}
 	c.info[p] = fi
 	log.Info("downloaded and cached", map[string]interface{}{
-		"_path": p,
+		"path": p,
 	})
 }
 
@@ -401,7 +404,7 @@ RETRY:
 		case ErrNotFound:
 		default:
 			log.Error("lookup failure", map[string]interface{}{
-				"_err": err.Error(),
+				"error": err.Error(),
 			})
 			return http.StatusInternalServerError, nil, err
 		}

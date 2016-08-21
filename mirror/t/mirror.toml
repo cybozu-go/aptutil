@@ -1,5 +1,7 @@
 dir = "/var/spool/go-apt-mirror"
-max_conns = 10
+
+[log]
+level = "error"
 
 [mirror.ubuntu]
 url = "http://archive.ubuntu.com/ubuntu"

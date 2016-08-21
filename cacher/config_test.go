@@ -9,7 +9,7 @@ import (
 func TestConfig(t *testing.T) {
 	t.Parallel()
 
-	var config Config
+	config := NewConfig()
 	md, err := toml.DecodeFile("t/cacher.toml", &config)
 	if err != nil {
 		t.Fatal(err)
@@ -34,8 +34,12 @@ func TestConfig(t *testing.T) {
 	if config.CacheCapacity != 21 {
 		t.Error(`config.CacheCapacity != 21`)
 	}
-	if config.MaxConns != 3 {
-		t.Error(`config.MaxConns != 3`)
+	if config.MaxConns != defaultMaxConns {
+		t.Error(`config.MaxConns != defaultMaxConns`)
+	}
+
+	if config.Log.Level != "error" {
+		t.Error(`config.Log.Level != "error"`)
 	}
 
 	if config.Mapping["ubuntu"] != "http://archive.ubuntu.com/ubuntu" {
