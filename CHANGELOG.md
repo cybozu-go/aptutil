@@ -3,6 +3,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+
+## [1.2.0] - 2016-08-21
 ### Added
 - aptuitl now adopts [github.com/cybozu-go/cmd][cmd] framework.  
   As a result, commands implement [the common spec][spec].
@@ -30,6 +32,7 @@ All notable changes to this project will be documented in this file.
 
 [cmd]: https://github.com/cybozu-go/cmd
 [spec]: https://github.com/cybozu-go/cmd/blob/master/README.md#specifications
-[Unreleased]: https://github.com/cybozu-go/aptutil/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/cybozu-go/aptutil/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/cybozu-go/aptutil/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/cybozu-go/aptutil/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/cybozu-go/aptutil/compare/v1.0.0...v1.0.1
