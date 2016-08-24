@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/cybozu-go/aptutil/apt"
+	"github.com/cybozu-go/cmd"
 	"github.com/cybozu-go/log"
 	"github.com/pkg/errors"
 )
@@ -42,7 +43,6 @@ type Cacher struct {
 	um            URLMap
 	checkInterval time.Duration
 	cachePeriod   time.Duration
-	ctx           context.Context
 	client        *http.Client
 	maxConns      int
 
@@ -58,7 +58,7 @@ type Cacher struct {
 }
 
 // NewCacher constructs Cacher.
-func NewCacher(ctx context.Context, config *Config) (*Cacher, error) {
+func NewCacher(config *Config) (*Cacher, error) {
 	if config.CheckInterval == 0 {
 		return nil, errors.New("invaild check_interval")
 	}
@@ -115,7 +115,6 @@ func NewCacher(ctx context.Context, config *Config) (*Cacher, error) {
 		um:            um,
 		checkInterval: checkInterval,
 		cachePeriod:   cachePeriod,
-		ctx:           ctx,
 		client:        &http.Client{},
 		maxConns:      config.MaxConns,
 		info:          make(map[string]*apt.FileInfo),
@@ -189,13 +188,19 @@ func (c *Cacher) releaseSemaphore(host string) {
 func (c *Cacher) maintMeta(p string) {
 	switch path.Base(p) {
 	case "Release":
-		go c.maintRelease(p, true)
+		cmd.Go(func(ctx context.Context) error {
+			c.maintRelease(ctx, p, true)
+			return nil
+		})
 	case "InRelease":
-		go c.maintRelease(p, false)
+		cmd.Go(func(ctx context.Context) error {
+			c.maintRelease(ctx, p, false)
+			return nil
+		})
 	}
 }
 
-func (c *Cacher) maintRelease(p string, withGPG bool) {
+func (c *Cacher) maintRelease(ctx context.Context, p string, withGPG bool) {
 	ticker := time.NewTicker(c.checkInterval)
 	defer ticker.Stop()
 
@@ -207,7 +212,7 @@ func (c *Cacher) maintRelease(p string, withGPG bool) {
 
 	for {
 		select {
-		case <-c.ctx.Done():
+		case <-ctx.Done():
 			return
 		case <-ticker.C:
 			ch1 := c.Download(p, nil)
@@ -247,12 +252,15 @@ func (c *Cacher) Download(p string, valid *apt.FileInfo) <-chan struct{} {
 
 	ch = make(chan struct{})
 	c.dlChannels[p] = ch
-	go c.download(p, u, valid)
+	cmd.Go(func(ctx context.Context) error {
+		c.download(ctx, p, u, valid)
+		return nil
+	})
 	return ch
 }
 
 // download is a goroutine to download an item.
-func (c *Cacher) download(p string, u *url.URL, valid *apt.FileInfo) {
+func (c *Cacher) download(ctx context.Context, p string, u *url.URL, valid *apt.FileInfo) {
 	c.acquireSemaphore(u.Host)
 
 	statusCode := http.StatusInternalServerError
@@ -267,19 +275,20 @@ func (c *Cacher) download(p string, u *url.URL, valid *apt.FileInfo) {
 		close(ch)
 
 		// invalidate result cache after some interval
-		go func(ctx context.Context) {
+		cmd.Go(func(ctx context.Context) error {
 			select {
 			case <-ctx.Done():
-				return
+				return nil
 			case <-time.After(c.cachePeriod):
 			}
 			c.dlLock.Lock()
 			delete(c.results, p)
 			c.dlLock.Unlock()
-		}(c.ctx)
+			return nil
+		})
 	}()
 
-	ctx, cancel := context.WithTimeout(c.ctx, requestTimeout)
+	ctx, cancel := context.WithTimeout(ctx, requestTimeout)
 	defer cancel()
 
 	req := &http.Request{

@@ -16,7 +16,7 @@ const (
 	lockFilename = ".lock"
 )
 
-func updateMirrors(c *Config, mirrors []string) error {
+func updateMirrors(ctx context.Context, c *Config, mirrors []string) error {
 	t := time.Now()
 
 	var ml []*Mirror
@@ -30,8 +30,8 @@ func updateMirrors(c *Config, mirrors []string) error {
 
 	log.Info("update starts", nil)
 
-	// run goroutines in a sub environment.
-	env := cmd.NewEnvironment(cmd.Context())
+	// run goroutines in an environment.
+	env := cmd.NewEnvironment(ctx)
 
 	for _, m := range ml {
 		env.Go(m.Update)
@@ -136,9 +136,13 @@ func Run(c *Config, mirrors []string) error {
 		}
 	}
 
-	err = updateMirrors(c, mirrors)
-	if err != nil {
-		return err
-	}
-	return gc(cmd.Context(), c)
+	cmd.Go(func(ctx context.Context) error {
+		err := updateMirrors(ctx, c, mirrors)
+		if err != nil {
+			return err
+		}
+		return gc(ctx, c)
+	})
+	cmd.Stop()
+	return cmd.Wait()
 }

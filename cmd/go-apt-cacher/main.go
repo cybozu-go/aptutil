@@ -35,7 +35,7 @@ func main() {
 	}
 
 	config.Log.Apply()
-	cc, err := cacher.NewCacher(cmd.Context(), config)
+	cc, err := cacher.NewCacher(config)
 	if err != nil {
 		log.ErrorExit(err)
 	}
