@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.2.2] - 2016-08-31
+### Changed
+- Check errors of wrong log configurations.
+
 ## [1.2.1] - 2016-08-24
 ### Changed
 - Fix for the latest cybozu-go/cmd.
@@ -36,7 +40,8 @@ All notable changes to this project will be documented in this file.
 
 [cmd]: https://github.com/cybozu-go/cmd
 [spec]: https://github.com/cybozu-go/cmd/blob/master/README.md#specifications
-[Unreleased]: https://github.com/cybozu-go/aptutil/compare/v1.2.1...HEAD
+[Unreleased]: https://github.com/cybozu-go/aptutil/compare/v1.2.2...HEAD
+[1.2.2]: https://github.com/cybozu-go/aptutil/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/cybozu-go/aptutil/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/cybozu-go/aptutil/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/cybozu-go/aptutil/compare/v1.0.1...v1.1.0
