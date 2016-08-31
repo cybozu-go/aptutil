@@ -33,7 +33,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	config.Log.Apply()
+	err = config.Log.Apply()
+	if err != nil {
+		log.ErrorExit(err)
+	}
 
 	err = mirror.Run(config, flag.Args())
 	if err != nil {
