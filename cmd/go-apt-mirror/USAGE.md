@@ -34,7 +34,8 @@ Options
 | Option | Default | Description |
 | ------ | ------- | ----------- |
 | `-f`   | `/etc/apt/mirror.toml` | Configurations |
-| `-l`   | `info`  | Log level [`critical|error|warning|info|debug`] |
+
+As `go-apt-cacher` uses [github.com/cybozu-go/cmd](https://github.com/cybozu-go/cmd), flags provided by `cmd` is also available.
 
 
 [TOML]: https://github.com/toml-lang/toml
