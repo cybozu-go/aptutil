@@ -111,9 +111,15 @@ func (m *Mirror) Update(ctx context.Context) error {
 	log.Info("download Release/InRelease", map[string]interface{}{
 		"repo": m.id,
 	})
-	fiMap, err := m.downloadRelease(ctx)
+	fiMap, byhash, err := m.downloadRelease(ctx)
 	if err != nil {
 		return errors.Wrap(err, m.id)
+	}
+
+	if byhash {
+		log.Info("detected by-hash support", map[string]interface{}{
+			"repo": m.id,
+		})
 	}
 
 	if len(fiMap) == 0 {
@@ -166,7 +172,7 @@ func (m *Mirror) Update(ctx context.Context) error {
 		default:
 			return errors.Wrap(err, m.id)
 		}
-		fil, err := apt.ExtractFileInfo(p, f)
+		fil, _, err := apt.ExtractFileInfo(p, f)
 		f.Close()
 		if err != nil {
 			return errors.Wrap(err, m.id)
@@ -304,14 +310,15 @@ RETRY:
 	r.data = data
 }
 
-func (m *Mirror) downloadRelease(ctx context.Context) (map[string]*apt.FileInfo, error) {
+func (m *Mirror) downloadRelease(ctx context.Context) (map[string]*apt.FileInfo, bool, error) {
 	releases := m.mc.ReleaseFiles()
 	results := make(chan *dlResult, len(releases))
+	byhash := true
 
 	for _, p := range releases {
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return nil, byhash, ctx.Err()
 		case <-m.semaphore:
 		}
 
@@ -322,19 +329,21 @@ func (m *Mirror) downloadRelease(ctx context.Context) (map[string]*apt.FileInfo,
 	for i := 0; i < len(releases); i++ {
 		r := <-results
 		if r.err != nil {
-			return nil, errors.Wrap(r.err, "download")
+			return nil, byhash, errors.Wrap(r.err, "download")
 		}
 		switch {
 		case r.status == http.StatusOK:
 			err := m.storage.Store(r.fi, r.data)
 			if err != nil {
-				return nil, errors.Wrap(err, "storage.Store")
+				return nil, byhash, errors.Wrap(err, "storage.Store")
 			}
 			if apt.IsSupported(r.path) {
-				fil, err := apt.ExtractFileInfo(r.path, bytes.NewReader(r.data))
+				fil, d, err := apt.ExtractFileInfo(r.path, bytes.NewReader(r.data))
 				if err != nil {
-					return nil, errors.Wrap(err, "ExtractFileInfo: "+r.path)
+					return nil, byhash, errors.Wrap(err, "ExtractFileInfo: "+r.path)
 				}
+
+				byhash = byhash && apt.SupportByHash(d)
 				for _, fi := range fil {
 					fiMap[fi.Path()] = fi
 				}
@@ -344,11 +353,11 @@ func (m *Mirror) downloadRelease(ctx context.Context) (map[string]*apt.FileInfo,
 			continue
 
 		default:
-			return nil, fmt.Errorf("status %d for %s", r.status, r.path)
+			return nil, byhash, fmt.Errorf("status %d for %s", r.status, r.path)
 		}
 	}
 
-	return fiMap, nil
+	return fiMap, byhash, nil
 }
 
 func (m *Mirror) downloadFiles(ctx context.Context,
