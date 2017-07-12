@@ -57,7 +57,7 @@ func containsFileInfo(fi *FileInfo, l []*FileInfo) bool {
 func TestGetFilesFromRelease(t *testing.T) {
 	t.Parallel()
 
-	f, err := os.Open("t/Release")
+	f, err := os.Open("testdata/af/Release")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +103,7 @@ func TestGetFilesFromRelease(t *testing.T) {
 func TestGetFilesFromPackages(t *testing.T) {
 	t.Parallel()
 
-	f, err := os.Open("t/Packages")
+	f, err := os.Open("testdata/af/Packages")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +145,7 @@ func TestGetFilesFromPackages(t *testing.T) {
 func TestGetFilesFromSources(t *testing.T) {
 	t.Parallel()
 
-	f, err := os.Open("t/Sources.gz")
+	f, err := os.Open("testdata/af/Sources.gz")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -219,7 +219,7 @@ func TestGetFilesFromSources(t *testing.T) {
 func TestGetFilesFromIndex(t *testing.T) {
 	t.Parallel()
 
-	f, err := os.Open("t/Index")
+	f, err := os.Open("testdata/af/Index")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -257,7 +257,7 @@ func TestGetFilesFromIndex(t *testing.T) {
 func TestExtractFileInfo(t *testing.T) {
 	t.Parallel()
 
-	f, err := os.Open("t/Packages")
+	f, err := os.Open("testdata/af/Packages")
 	if err != nil {
 		t.Fatal(err)
 	}
