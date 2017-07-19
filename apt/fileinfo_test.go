@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func TestFileInfo(t *testing.T) {
+func testFileInfoSame(t *testing.T) {
 	t.Parallel()
 
 	data := []byte{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'}
@@ -118,7 +118,7 @@ func TestFileInfo(t *testing.T) {
 	}
 }
 
-func TestMakeFileInfo(t *testing.T) {
+func testFileInfoMake(t *testing.T) {
 	t.Parallel()
 
 	path := "/abc/def"
@@ -138,7 +138,7 @@ func TestMakeFileInfo(t *testing.T) {
 	}
 }
 
-func TestFileInfoJSON(t *testing.T) {
+func testFileInfoJSON(t *testing.T) {
 	t.Parallel()
 
 	path := "/abc/def"
@@ -160,4 +160,49 @@ func TestFileInfoJSON(t *testing.T) {
 		t.Error(`!fi.Same(fi2)`)
 		t.Log(fmt.Sprintf("%#v", fi2))
 	}
+}
+
+func testFileInfoAddPrefix(t *testing.T) {
+	t.Parallel()
+	path := "/abc/def"
+	data := []byte{'a', 'b', 'c', 'd', 'e', 'f'}
+
+	fi := MakeFileInfo(path, data)
+	if fi.Path() != "/abc/def" {
+		t.Error(`fi.Path() != "/abc/def"`)
+	}
+
+	fi = fi.AddPrefix("/prefix")
+	if fi.Path() != "/prefix/abc/def" {
+		t.Error(`fi.Path() != "/prefix/abc/def"`)
+	}
+}
+
+func testFileInfoChecksum(t *testing.T) {
+	t.Parallel()
+
+	path := "/abc/def"
+	data := []byte{'a', 'b', 'c', 'd', 'e', 'f'}
+	md5 := "e80b5017098950fc58aad83c8c14978e"
+	s1 := "1f8ac10f23c5b5bc1167bda84b833e5c057a77d2"
+	s256 := "bef57ec7f53a6d40beb640a780a639c83bc29ac8a9816f1fc6c5c6dcd93c4721"
+
+	fi := MakeFileInfo(path, data)
+	if fi.MD5SumPath() != "/abc/by-hash/MD5Sum/"+md5 {
+		t.Error(`fi.MD5SumPath() != "/abc/by-hash/MD5Sum/" + md5`)
+	}
+	if fi.SHA1Path() != "/abc/by-hash/SHA1/"+s1 {
+		t.Error(`fi.SHA1Path() != "/abc/by-hash/SHA1/" + s1`)
+	}
+	if fi.SHA256Path() != "/abc/by-hash/SHA256/"+s256 {
+		t.Error(`fi.SHA256Path() != "/abc/by-hash/SHA256/" + s256`)
+	}
+}
+
+func TestFileInfo(t *testing.T) {
+	t.Run("Same", testFileInfoSame)
+	t.Run("Make", testFileInfoMake)
+	t.Run("JSON", testFileInfoJSON)
+	t.Run("AddPrefix", testFileInfoAddPrefix)
+	t.Run("Checksum", testFileInfoChecksum)
 }
