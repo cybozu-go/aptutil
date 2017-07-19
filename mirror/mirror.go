@@ -379,7 +379,7 @@ func (m *Mirror) downloadFiles(ctx context.Context,
 			})
 		}
 		if m.current != nil {
-			fi2, fullpath := m.current.Lookup(fi)
+			fi2, fullpath := m.current.Lookup(fi, false)
 			if fi2 != nil {
 				err := m.storage.StoreLink(fi2, fullpath)
 				if err != nil {

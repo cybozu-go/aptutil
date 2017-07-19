@@ -57,6 +57,7 @@ func TestStorage(t *testing.T) {
 		"a/b/c":   {'a', 'b', 'c'},
 		"def":     {'d', 'e', 'f'},
 		"a/pp/le": {'a', 'p', 'p', 'l', 'e'},
+		"a/pp/by-hash/SHA256/cb8379ac2098aa165029e3938a51da0bcecfc008fd6795f401178647f96c5b34": {'d', 'e', 'f'},
 	}
 
 	for fn, data := range files {
@@ -67,7 +68,7 @@ func TestStorage(t *testing.T) {
 	}
 
 	fi := apt.MakeFileInfo("a/b/c", []byte{'a', 'b', 'd'})
-	fi2, fullpath := s.Lookup(fi)
+	fi2, fullpath := s.Lookup(fi, false)
 	if fi2 != nil {
 		t.Error(`fi2 != nil`)
 	}
@@ -75,7 +76,7 @@ func TestStorage(t *testing.T) {
 		t.Error(`len(fullpath) != 0`)
 	}
 
-	fi3, _ := s.Lookup(apt.MakeFileInfo("a/b/c", files["a/b/c"]))
+	fi3, _ := s.Lookup(apt.MakeFileInfo("a/b/c", files["a/b/c"]), false)
 	if fi3 == nil {
 		t.Error(`fi3 == nil`)
 	}
@@ -92,16 +93,24 @@ func TestStorage(t *testing.T) {
 		t.Error(err)
 	}
 
-	fi4, _ := s2.Lookup(apt.MakeFileInfo("a/b/c", files["a/b/c"]))
+	fi4, _ := s2.Lookup(apt.MakeFileInfo("a/b/c", files["a/b/c"]), false)
 	if fi4 == nil {
 		t.Error(`fi4 == nil`)
 	}
-	fi5, _ := s2.Lookup(apt.MakeFileInfo("def", files["def"]))
+	fi5, _ := s2.Lookup(apt.MakeFileInfo("def", files["def"]), false)
 	if fi5 == nil {
 		t.Error(`fi5 == nil`)
 	}
-	fi6, _ := s2.Lookup(apt.MakeFileInfo("a/pp/le", files["a/pp/le"]))
+	fi6, _ := s2.Lookup(apt.MakeFileInfo("a/pp/le", files["a/pp/le"]), false)
 	if fi6 == nil {
 		t.Error(`fi6 == nil`)
+	}
+	fi7, _ := s2.Lookup(apt.MakeFileInfo("a/pp/le", files["def"]), false)
+	if fi7 != nil {
+		t.Error(`fi7 != nil`)
+	}
+	fi8, _ := s2.Lookup(apt.MakeFileInfo("a/pp/le", files["def"]), true)
+	if fi8 == nil {
+		t.Error(`fi8 == nil`)
 	}
 }

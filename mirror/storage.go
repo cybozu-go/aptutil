@@ -162,16 +162,26 @@ func (s *Storage) StoreLink(fi *apt.FileInfo, fullpath string) error {
 //
 // If a file matching fi exists, its info and full path is returned.
 // Otherwise, nil and empty string is returned.
-func (s *Storage) Lookup(fi *apt.FileInfo) (*apt.FileInfo, string) {
-	s.mu.RLock()
-	fi2, ok := s.info[fi.Path()]
-	s.mu.RUnlock()
+func (s *Storage) Lookup(fi *apt.FileInfo, byhash bool) (*apt.FileInfo, string) {
+	f := func(p string) (*apt.FileInfo, string) {
+		s.mu.RLock()
+		defer s.mu.RUnlock()
 
-	if !ok || !fi.Same(fi2) {
-		return nil, ""
+		fi2, ok := s.info[p]
+		if !ok || !fi.Same(fi2) {
+			return nil, ""
+		}
+		return fi2, filepath.Join(s.dir, s.prefix, filepath.Clean(p))
 	}
 
-	return fi2, filepath.Join(s.dir, s.prefix, filepath.Clean(fi2.Path()))
+	if byhash {
+		fi2, fullpath := f(fi.SHA256Path())
+		if fi2 != nil {
+			return fi2, fullpath
+		}
+	}
+
+	return f(fi.Path())
 }
 
 // Open opens the named file and returns it.
