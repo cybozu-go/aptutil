@@ -2,6 +2,7 @@ package mirror
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -134,6 +135,38 @@ func (s *Storage) Store(fi *apt.FileInfo, data []byte) error {
 	return f.Sync()
 }
 
+// StoreWithHash stores a file into this storage with additional
+// hard links for by-hash retrieval.
+func (s *Storage) StoreWithHash(fi *apt.FileInfo, data []byte) error {
+	fp := filepath.Join(s.dir, s.prefix, filepath.Clean(fi.Path()))
+	d := filepath.Dir(fp)
+
+	err := os.MkdirAll(d, 0755)
+	if err != nil {
+		return err
+	}
+
+	tmpf, err := ioutil.TempFile(d, "tmp")
+	if err != nil {
+		return errors.Wrap(err, "StoreWithHash")
+	}
+	defer func() {
+		tmpf.Close()
+		os.Remove(tmpf.Name())
+	}()
+
+	_, err = tmpf.Write(data)
+	if err != nil {
+		return errors.Wrap(err, "StoreWithHash")
+	}
+	err = tmpf.Sync()
+	if err != nil {
+		return errors.Wrap(err, "StoreWithHash")
+	}
+
+	return s.StoreLinkWithHash(fi, tmpf.Name())
+}
+
 // StoreLink stores a hard link to a file into this storage.
 func (s *Storage) StoreLink(fi *apt.FileInfo, fullpath string) error {
 	p := fi.Path()
@@ -156,6 +189,47 @@ func (s *Storage) StoreLink(fi *apt.FileInfo, fullpath string) error {
 	}
 
 	return os.Link(fullpath, fp)
+}
+
+// StoreLinkWithHash stores a hard link to a file into this storage
+// with additional hard links for by-hash retrieval.
+func (s *Storage) StoreLinkWithHash(fi *apt.FileInfo, fullpath string) error {
+	p := fi.Path()
+	md5p := fi.MD5SumPath()
+	sha1p := fi.SHA1Path()
+	sha256p := fi.SHA256Path()
+	fpl := []string{
+		filepath.Join(s.dir, s.prefix, filepath.Clean(p)),
+		filepath.Join(s.dir, s.prefix, filepath.Clean(md5p)),
+		filepath.Join(s.dir, s.prefix, filepath.Clean(sha1p)),
+		filepath.Join(s.dir, s.prefix, filepath.Clean(sha256p)),
+	}
+
+	s.mu.Lock()
+	_, ok := s.info[p]
+	if ok {
+		// ignore the canonical path because another file was already stored.
+		fpl = fpl[1:]
+	} else {
+		s.info[p] = fi
+	}
+	s.info[md5p] = fi
+	s.info[sha1p] = fi
+	s.info[sha256p] = fi
+	s.mu.Unlock()
+
+	for _, fp := range fpl {
+		d := filepath.Dir(fp)
+		err := os.MkdirAll(d, 0755)
+		if err != nil {
+			return errors.Wrap(err, "StoreLinkWithHash: "+fp)
+		}
+		err = os.Link(fullpath, fp)
+		if err != nil {
+			return errors.Wrap(err, "StoreLinkWithHash: "+fp)
+		}
+	}
+	return nil
 }
 
 // Lookup looks up a file in this storage.

@@ -8,7 +8,7 @@ import (
 	"github.com/cybozu-go/aptutil/apt"
 )
 
-func TestStorageBadConstruction(t *testing.T) {
+func testStorageBadConstruction(t *testing.T) {
 	t.Parallel()
 
 	f, err := ioutil.TempFile("", "gotest")
@@ -34,7 +34,7 @@ func TestStorageBadConstruction(t *testing.T) {
 	}
 }
 
-func TestStorage(t *testing.T) {
+func testStorageLookup(t *testing.T) {
 	t.Parallel()
 
 	d, err := ioutil.TempDir("", "gotest")
@@ -57,7 +57,6 @@ func TestStorage(t *testing.T) {
 		"a/b/c":   {'a', 'b', 'c'},
 		"def":     {'d', 'e', 'f'},
 		"a/pp/le": {'a', 'p', 'p', 'l', 'e'},
-		"a/pp/by-hash/SHA256/cb8379ac2098aa165029e3938a51da0bcecfc008fd6795f401178647f96c5b34": {'d', 'e', 'f'},
 	}
 
 	for fn, data := range files {
@@ -109,8 +108,65 @@ func TestStorage(t *testing.T) {
 	if fi7 != nil {
 		t.Error(`fi7 != nil`)
 	}
-	fi8, _ := s2.Lookup(apt.MakeFileInfo("a/pp/le", files["def"]), true)
-	if fi8 == nil {
-		t.Error(`fi8 == nil`)
+}
+
+func testStorageStore(t *testing.T) {
+	t.Parallel()
+
+	d, err := ioutil.TempDir("", "gotest")
+	if err != nil {
+		t.Fatal(err)
 	}
+	defer os.RemoveAll(d)
+
+	s, err := NewStorage(d, "pre")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = s.Load()
+	if err != nil {
+		t.Error(err)
+	}
+
+	fn := "a/b/c"
+	data := []byte{'a', 'b', 'c'}
+	fi := apt.MakeFileInfo(fn, data)
+
+	err = s.Store(fi, data)
+	if err != nil {
+		t.Error(err)
+	}
+	found, _ := s.Lookup(fi, false)
+	if found == nil {
+		t.Error(`found == nil`)
+	}
+
+	// duplicates should not be granted
+	err = s.Store(fi, data)
+	if err == nil {
+		t.Error(`err == nil`)
+	}
+
+	data2 := []byte{'d', 'e', 'f'}
+	fi2 := apt.MakeFileInfo(fn, data2)
+
+	err = s.StoreWithHash(fi2, data2)
+	if err != nil {
+		t.Error(err)
+	}
+	notfound, _ := s.Lookup(fi2, false)
+	if notfound != nil {
+		t.Error(`notfound != nil`)
+	}
+	found, _ = s.Lookup(fi2, true)
+	if found == nil {
+		t.Error(`found == nil`, d, fi2.SHA256Path())
+	}
+}
+
+func TestStorage(t *testing.T) {
+	t.Run("BadConstruction", testStorageBadConstruction)
+	t.Run("Lookup", testStorageLookup)
+	t.Run("Store", testStorageStore)
 }
