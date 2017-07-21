@@ -225,7 +225,7 @@ func (s *Storage) StoreLinkWithHash(fi *apt.FileInfo, fullpath string) error {
 			return errors.Wrap(err, "StoreLinkWithHash: "+fp)
 		}
 		err = os.Link(fullpath, fp)
-		if err != nil {
+		if err != nil && !os.IsExist(err) {
 			return errors.Wrap(err, "StoreLinkWithHash: "+fp)
 		}
 	}
