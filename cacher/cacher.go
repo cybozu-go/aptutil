@@ -144,7 +144,7 @@ func NewCacher(config *Config) (*Cacher, error) {
 		}
 	}
 
-	// add meta files w/o checksums (Release, Release.pgp, and InRelease).
+	// add meta files w/o checksums (Release, Release.gpg, and InRelease).
 	for _, fi := range metas {
 		p := fi.Path()
 		if _, ok := c.info[p]; !ok {

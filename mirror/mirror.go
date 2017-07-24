@@ -140,12 +140,6 @@ func (m *Mirror) Update(ctx context.Context) error {
 		return errors.New(m.id + ": found no Release/InRelease")
 	}
 
-	// WORKAROUND: some (dell) repositories have invalid Release
-	// that contains wrong checksum for itself.  Ignore them.
-	for _, p := range m.mc.ReleaseFiles() {
-		delete(filMap, p)
-	}
-
 	// WORKAROUND: some (zabbix) repositories returns wrong contents
 	// for non-existent files such as Sources (looks like the body of
 	// Sources.gz is returned).
