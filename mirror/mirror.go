@@ -120,12 +120,65 @@ func (m *Mirror) storeLink(fi *apt.FileInfo, fp string, byhash bool) error {
 	return m.storage.StoreLink(fi, fp)
 }
 
+func (m *Mirror) extractItems(indices []*apt.FileInfo, indexMap map[string][]*apt.FileInfo) (map[string]*apt.FileInfo, error) {
+	itemMap := make(map[string]*apt.FileInfo)
+
+	for _, index := range indices {
+		p := index.Path()
+		if !m.mc.MatchingIndex(p) || !apt.IsSupported(p) {
+			continue
+		}
+		f, err := m.storage.Open(p)
+		if err != nil {
+			return nil, err
+		}
+
+		fil, _, err := apt.ExtractFileInfo(p, f)
+		f.Close()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, fi := range fil {
+			fipath := fi.Path()
+			if _, ok := indexMap[fipath]; ok {
+				// already included in Release/InRelease
+				continue
+			}
+			itemMap[fipath] = fi
+		}
+	}
+	return itemMap, nil
+}
+
+func (m *Mirror) replaceLink() error {
+	tname := filepath.Join(m.dir, m.id+".tmp")
+	os.Remove(tname)
+	err := os.Symlink(filepath.Join(m.storage.Dir(), m.id), tname)
+	if err != nil {
+		return err
+	}
+
+	// symlink exists only in dentry
+	err = DirSync(m.dir)
+	if err != nil {
+		return err
+	}
+
+	err = os.Rename(tname, filepath.Join(m.dir, m.id))
+	if err != nil {
+		return err
+	}
+
+	return DirSync(m.dir)
+}
+
 // Update updates mirrored files.
 func (m *Mirror) Update(ctx context.Context) error {
 	log.Info("download Release/InRelease", map[string]interface{}{
 		"repo": m.id,
 	})
-	filMap, byhash, err := m.downloadRelease(ctx)
+	indexMap, byhash, err := m.downloadRelease(ctx)
 	if err != nil {
 		return errors.Wrap(err, m.id)
 	}
@@ -136,7 +189,7 @@ func (m *Mirror) Update(ctx context.Context) error {
 		})
 	}
 
-	if len(filMap) == 0 {
+	if len(indexMap) == 0 {
 		return errors.New(m.id + ": found no Release/InRelease")
 	}
 
@@ -144,48 +197,28 @@ func (m *Mirror) Update(ctx context.Context) error {
 	// for non-existent files such as Sources (looks like the body of
 	// Sources.gz is returned).
 	if !m.mc.Source {
-		filMap2 := make(map[string][]*apt.FileInfo)
-		for p, fil := range filMap {
+		tmpMap := make(map[string][]*apt.FileInfo)
+		for p, fil := range indexMap {
 			base := path.Base(p)
 			base = base[0 : len(base)-len(path.Ext(base))]
 			if base == "Sources" {
 				continue
 			}
-			filMap2[p] = fil
+			tmpMap[p] = fil
 		}
-		filMap = filMap2
+		indexMap = tmpMap
 	}
 
 	// download (or reuse) all indices
-	fil, err := m.downloadIndices(ctx, filMap, byhash)
+	indices, err := m.downloadIndices(ctx, indexMap, byhash)
 	if err != nil {
 		return errors.Wrap(err, m.id)
 	}
 
-	// extract file information
-	itemMap := make(map[string]*apt.FileInfo)
-	for _, fi := range fil {
-		p := fi.Path()
-		if !m.mc.MatchingIndex(p) || !apt.IsSupported(p) {
-			continue
-		}
-		f, err := m.storage.Open(p)
-		if err != nil {
-			return errors.Wrap(err, m.id)
-		}
-		fil2, _, err := apt.ExtractFileInfo(p, f)
-		f.Close()
-		if err != nil {
-			return errors.Wrap(err, m.id)
-		}
-		for _, fi2 := range fil2 {
-			fi2path := fi2.Path()
-			if _, ok := filMap[fi2path]; ok {
-				// already included in Release/InRelease
-				continue
-			}
-			itemMap[fi2path] = fi2
-		}
+	// extract file information from indices
+	itemMap, err := m.extractItems(indices, indexMap)
+	if err != nil {
+		return errors.Wrap(err, m.id)
 	}
 
 	// download all files matching the configuration.
@@ -208,18 +241,10 @@ func (m *Mirror) Update(ctx context.Context) error {
 	}
 
 	// replace the symlink atomically
-	tname := filepath.Join(m.dir, m.id+".tmp")
-	os.Remove(tname)
-	err = os.Symlink(filepath.Join(m.storage.Dir(), m.id), tname)
+	err = m.replaceLink()
 	if err != nil {
 		return errors.Wrap(err, m.id)
 	}
-	DirSync(m.dir)
-	err = os.Rename(tname, filepath.Join(m.dir, m.id))
-	if err != nil {
-		return errors.Wrap(err, m.id)
-	}
-	DirSync(m.dir)
 
 	log.Info("update succeeded", map[string]interface{}{
 		"repo": m.id,
