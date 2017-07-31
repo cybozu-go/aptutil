@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/cybozu-go/aptutil/apt"
+	"github.com/cybozu-go/cmd"
 	"github.com/cybozu-go/log"
 	"github.com/pkg/errors"
 )
@@ -281,6 +282,14 @@ func (m *Mirror) download(ctx context.Context,
 	}
 
 RETRY:
+	// allow interrupts
+	select {
+	case <-ctx.Done():
+		r.err = ctx.Err()
+		return
+	default:
+	}
+
 	if retries > 0 {
 		log.Warn("retrying download", map[string]interface{}{
 			"repo": m.id,
@@ -454,88 +463,109 @@ func (m *Mirror) downloadItems(ctx context.Context,
 
 func (m *Mirror) downloadFiles(ctx context.Context,
 	fil []*apt.FileInfo, allowMissing, byhash bool) ([]*apt.FileInfo, error) {
-	results := make(chan *dlResult, len(fil))
-	dlfil := make([]*apt.FileInfo, 0, len(fil))
 
+	results := make(chan *dlResult, len(fil))
+	var reused, downloaded []*apt.FileInfo
+
+	env := cmd.NewEnvironment(ctx)
+	env.Go(func(ctx context.Context) error {
+		var err error
+		reused, err = m.reuseOrDownload(ctx, fil, byhash, results)
+		return err
+	})
+	env.Go(func(ctx context.Context) error {
+		var err error
+		downloaded, err = m.recvResult(allowMissing, byhash, results)
+		return err
+	})
+	env.Stop()
+	err := env.Wait()
+	if err != nil {
+		return nil, err
+	}
+
+	log.Info("stats", map[string]interface{}{
+		"repo":       m.id,
+		"total":      len(fil),
+		"reused":     len(reused),
+		"downloaded": len(downloaded),
+	})
+
+	// reused has enough capacity.  See reuseOrDownload.
+	return append(reused, downloaded...), nil
+}
+
+func (m *Mirror) reuseOrDownload(ctx context.Context, fil []*apt.FileInfo,
+	byhash bool, results chan<- *dlResult) ([]*apt.FileInfo, error) {
+
+	// environment to manage downloading goroutines.
+	env := cmd.NewEnvironment(ctx)
+
+	// on return, wait for all DL goroutines then signal recvResult
+	// by closing results channel.
+	defer func() {
+		env.Stop()
+		env.Wait()
+		close(results)
+	}()
+
+	reused := make([]*apt.FileInfo, 0, len(fil))
 	loggedAt := time.Now()
 
-	var reused, downloading, downloaded int
-	for _, fi := range fil {
-		p := fi.Path()
+	for i, fi := range fil {
+		// avoid assignment
+		fi := fi
 		now := time.Now()
 		if now.Sub(loggedAt) > progressInterval {
 			loggedAt = now
 			log.Info("download progress", map[string]interface{}{
-				"repo":       m.id,
-				"total":      len(fil),
-				"reused":     reused,
-				"downloaded": downloaded,
+				"repo":      m.id,
+				"total":     len(fil),
+				"reused":    len(reused),
+				"downloads": i - len(reused),
 			})
 		}
+
 		if m.current != nil {
-			fi2, fullpath := m.current.Lookup(fi, byhash)
-			if fi2 != nil {
-				err := m.storeLink(fi2, fullpath, byhash)
+			localfi, fullpath := m.current.Lookup(fi, byhash)
+			if localfi != nil {
+				err := m.storeLink(localfi, fullpath, byhash)
 				if err != nil {
 					return nil, errors.Wrap(err, "storeLink")
 				}
-				dlfil = append(dlfil, fi2)
-				reused++
+				reused = append(reused, localfi)
 				if log.Enabled(log.LvDebug) {
 					log.Debug("reuse item", map[string]interface{}{
 						"repo": m.id,
-						"path": p,
+						"path": fi.Path(),
 					})
 				}
 				continue
 			}
 		}
 
-		// check download results early
-		for {
-			select {
-			case r := <-results:
-				downloaded++
-				if r.err != nil {
-					return nil, errors.Wrap(r.err, "download")
-				}
-				if allowMissing && r.status == http.StatusNotFound {
-					log.Warn("missing file", map[string]interface{}{
-						"repo": m.id,
-						"path": r.path,
-					})
-					continue
-				}
-				if r.status != http.StatusOK {
-					return nil, fmt.Errorf("status %d for %s", r.status, r.path)
-				}
-				err := m.store(r.fi, r.data, byhash)
-				if err != nil {
-					return nil, errors.Wrap(err, "store")
-				}
-				dlfil = append(dlfil, r.fi)
-			default:
-				goto DOWNLOAD
-			}
-		}
-
-	DOWNLOAD:
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-m.semaphore:
 		}
 
-		go m.download(ctx, p, fi, byhash, results)
-		downloading++
+		env.Go(func(ctx context.Context) error {
+			m.download(ctx, fi.Path(), fi, byhash, results)
+			return nil
+		})
 	}
+	return reused, nil
+}
 
-	for downloading != downloaded {
-		r := <-results
-		downloaded++
+func (m *Mirror) recvResult(allowMissing, byhash bool, results <-chan *dlResult) ([]*apt.FileInfo, error) {
+	var dlfil []*apt.FileInfo
+
+	for r := range results {
 		if r.err != nil {
 			return nil, errors.Wrap(r.err, "download")
 		}
+
 		if allowMissing && r.status == http.StatusNotFound {
 			log.Warn("missing file", map[string]interface{}{
 				"repo": m.id,
@@ -543,21 +573,18 @@ func (m *Mirror) downloadFiles(ctx context.Context,
 			})
 			continue
 		}
+
 		if r.status != http.StatusOK {
 			return nil, fmt.Errorf("status %d for %s", r.status, r.path)
 		}
+
 		err := m.store(r.fi, r.data, byhash)
 		if err != nil {
 			return nil, errors.Wrap(err, "store")
 		}
+
 		dlfil = append(dlfil, r.fi)
 	}
-
-	log.Info("stats", map[string]interface{}{
-		"repo":       m.id,
-		"reused":     reused,
-		"downloaded": downloaded,
-	})
 
 	return dlfil, nil
 }
