@@ -1,0 +1,25 @@
+Origin: Ubuntu
+Label: Ubuntu
+Suite: xenial-updates
+Version: 16.04
+Codename: xenial
+Date: Wed, 12 Jul 2017  1:20:54 UTC
+Architectures: amd64 arm64 armhf i386 powerpc ppc64el s390x
+Components: main restricted universe multiverse
+Description: Ubuntu Xenial Updates
+MD5Sum:
+ d9b3b8be9917380c20557ec175ffcaf9         20458922 Contents-amd64.gz
+ b9215f9d24105a27435ae757403588de         19037680 Contents-i386.gz
+ 71dd618e3737fffdcdd8169ead197e8c           730354 main/binary-amd64/Packages.gz
+ 228f8d529179a601e0f896789529ea44           705363 main/binary-i386/Packages.gz
+SHA1:
+ 03b46cc8d2ca61612e55f4c83678c18c4db6b4bd         20458922 Contents-amd64.gz
+ 443562673c6a668395774934ddd32e74e8867131         19037680 Contents-i386.gz
+ ccca199fc619992718df18bc8ad75b8987860ae5           730354 main/binary-amd64/Packages.gz
+ d055bb3cf1ffe4badbeee69fc7d4c304266b820c           705363 main/binary-i386/Packages.gz
+SHA256:
+ eb6fce18a77014c3f68b93805056f539f3c7dded3ff1d14ce3460dec75833304         20458922 Contents-amd64.gz
+ 78d74be881a5595e199f893e2e4b674d9e2c7dcecd691a852e1812310f229d07         19037680 Contents-i386.gz
+ bb1ad06735cf1f0961e16dfdae78dee649ecb43a19b0f1aee1782178bbb45273           730354 main/binary-amd64/Packages.gz
+ d7c16ab8eb172d1c53d3a7d1076e4e1684b27217fe3a3dfb207a18fab81eed28           705363 main/binary-i386/Packages.gz
+Acquire-By-Hash: yes

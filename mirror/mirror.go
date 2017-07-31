@@ -106,87 +106,100 @@ func NewMirror(t time.Time, id string, c *Config) (*Mirror, error) {
 	return mr, nil
 }
 
+func (m *Mirror) store(fi *apt.FileInfo, data []byte, byhash bool) error {
+	if byhash {
+		return m.storage.StoreWithHash(fi, data)
+	}
+	return m.storage.Store(fi, data)
+}
+
+func (m *Mirror) storeLink(fi *apt.FileInfo, fp string, byhash bool) error {
+	if byhash {
+		return m.storage.StoreLinkWithHash(fi, fp)
+	}
+	return m.storage.StoreLink(fi, fp)
+}
+
 // Update updates mirrored files.
 func (m *Mirror) Update(ctx context.Context) error {
 	log.Info("download Release/InRelease", map[string]interface{}{
 		"repo": m.id,
 	})
-	fiMap, err := m.downloadRelease(ctx)
+	filMap, byhash, err := m.downloadRelease(ctx)
 	if err != nil {
 		return errors.Wrap(err, m.id)
 	}
 
-	if len(fiMap) == 0 {
+	if byhash {
+		log.Info("detected by-hash support", map[string]interface{}{
+			"repo": m.id,
+		})
+	}
+
+	if len(filMap) == 0 {
 		return errors.New(m.id + ": found no Release/InRelease")
 	}
 
 	// WORKAROUND: some (dell) repositories have invalid Release
 	// that contains wrong checksum for itself.  Ignore them.
 	for _, p := range m.mc.ReleaseFiles() {
-		delete(fiMap, p)
+		delete(filMap, p)
 	}
 
 	// WORKAROUND: some (zabbix) repositories returns wrong contents
 	// for non-existent files such as Sources (looks like the body of
 	// Sources.gz is returned).
 	if !m.mc.Source {
-		fiMap2 := make(map[string]*apt.FileInfo)
-		for p, fi := range fiMap {
+		filMap2 := make(map[string][]*apt.FileInfo)
+		for p, fil := range filMap {
 			base := path.Base(p)
 			base = base[0 : len(base)-len(path.Ext(base))]
 			if base == "Sources" {
 				continue
 			}
-			fiMap2[p] = fi
+			filMap2[p] = fil
 		}
-		fiMap = fiMap2
+		filMap = filMap2
 	}
 
 	// download (or reuse) all indices
-	log.Info("download other indices", map[string]interface{}{
-		"repo":    m.id,
-		"indices": len(fiMap),
-	})
-	err = m.downloadFiles(ctx, fiMap, true)
+	fil, err := m.downloadIndices(ctx, filMap, byhash)
 	if err != nil {
 		return errors.Wrap(err, m.id)
 	}
 
 	// extract file information
-	fiMap2 := make(map[string]*apt.FileInfo)
-	for p := range fiMap {
+	itemMap := make(map[string]*apt.FileInfo)
+	for _, fi := range fil {
+		p := fi.Path()
 		if !m.mc.MatchingIndex(p) || !apt.IsSupported(p) {
 			continue
 		}
 		f, err := m.storage.Open(p)
-		switch {
-		case err == nil:
-		case os.IsNotExist(err):
-			continue
-		default:
+		if err != nil {
 			return errors.Wrap(err, m.id)
 		}
-		fil, err := apt.ExtractFileInfo(p, f)
+		fil2, _, err := apt.ExtractFileInfo(p, f)
 		f.Close()
 		if err != nil {
 			return errors.Wrap(err, m.id)
 		}
-		for _, fi2 := range fil {
+		for _, fi2 := range fil2 {
 			fi2path := fi2.Path()
-			if _, ok := fiMap[fi2path]; ok {
+			if _, ok := filMap[fi2path]; ok {
 				// already included in Release/InRelease
 				continue
 			}
-			fiMap2[fi2.Path()] = fi2
+			itemMap[fi2path] = fi2
 		}
 	}
 
 	// download all files matching the configuration.
 	log.Info("download items", map[string]interface{}{
 		"repo":  m.id,
-		"items": len(fiMap2),
+		"items": len(itemMap),
 	})
-	err = m.downloadFiles(ctx, fiMap2, false)
+	_, err = m.downloadItems(ctx, itemMap)
 	if err != nil {
 		return errors.Wrap(err, m.id)
 	}
@@ -230,7 +243,7 @@ type dlResult struct {
 
 // download is a goroutine to download an item.
 func (m *Mirror) download(ctx context.Context,
-	p string, fi *apt.FileInfo, ch chan<- *dlResult) {
+	p string, fi *apt.FileInfo, byhash bool, ch chan<- *dlResult) {
 
 	r := &dlResult{
 		path: p,
@@ -241,6 +254,12 @@ func (m *Mirror) download(ctx context.Context,
 	}()
 
 	var retries uint
+	targets := []string{p}
+	if byhash && fi != nil {
+		targets = append(targets, fi.SHA256Path())
+		targets = append(targets, fi.SHA1Path())
+		targets = append(targets, fi.MD5SumPath())
+	}
 
 RETRY:
 	if retries > 0 {
@@ -253,7 +272,7 @@ RETRY:
 
 	req := &http.Request{
 		Method:     "GET",
-		URL:        m.mc.Resolve(p),
+		URL:        m.mc.Resolve(targets[0]),
 		Proto:      "HTTP/1.1",
 		ProtoMajor: 1,
 		ProtoMinor: 1,
@@ -297,6 +316,15 @@ RETRY:
 
 	fi2 := apt.MakeFileInfo(p, data)
 	if fi != nil && !fi.Same(fi2) {
+		if len(targets) > 1 {
+			targets = targets[1:]
+			log.Warn("try by-hash retrieval", map[string]interface{}{
+				"repo":   m.id,
+				"path":   p,
+				"target": targets[0],
+			})
+			goto RETRY
+		}
 		r.err = errors.New("invalid checksum for " + p)
 		return
 	}
@@ -304,78 +332,127 @@ RETRY:
 	r.data = data
 }
 
-func (m *Mirror) downloadRelease(ctx context.Context) (map[string]*apt.FileInfo, error) {
+func (m *Mirror) downloadRelease(ctx context.Context) (map[string][]*apt.FileInfo, bool, error) {
 	releases := m.mc.ReleaseFiles()
 	results := make(chan *dlResult, len(releases))
 
 	for _, p := range releases {
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return nil, false, ctx.Err()
 		case <-m.semaphore:
 		}
 
-		go m.download(ctx, p, nil, results)
+		go m.download(ctx, p, nil, false, results)
 	}
 
-	fiMap := make(map[string]*apt.FileInfo)
+	byhash := true
+	filMap := make(map[string][]*apt.FileInfo)
 	for i := 0; i < len(releases); i++ {
 		r := <-results
 		if r.err != nil {
-			return nil, errors.Wrap(r.err, "download")
+			return nil, byhash, errors.Wrap(r.err, "download")
 		}
 		switch {
 		case r.status == http.StatusOK:
 			err := m.storage.Store(r.fi, r.data)
 			if err != nil {
-				return nil, errors.Wrap(err, "storage.Store")
+				return nil, byhash, errors.Wrap(err, "storage.Store")
 			}
-			if apt.IsSupported(r.path) {
-				fil, err := apt.ExtractFileInfo(r.path, bytes.NewReader(r.data))
-				if err != nil {
-					return nil, errors.Wrap(err, "ExtractFileInfo: "+r.path)
+			fil, d, err := apt.ExtractFileInfo(r.path, bytes.NewReader(r.data))
+			if err != nil {
+				return nil, byhash, errors.Wrap(err, "ExtractFileInfo: "+r.path)
+			}
+
+			if byhash && path.Base(r.path) != "Release.gpg" {
+				byhash = apt.SupportByHash(d)
+			}
+
+		FIL:
+			for _, fi := range fil {
+				p2 := fi.Path()
+				fil2, ok := filMap[p2]
+				if !ok {
+					filMap[p2] = []*apt.FileInfo{fi}
+					continue
 				}
-				for _, fi := range fil {
-					fiMap[fi.Path()] = fi
+
+				for _, fi2 := range fil2 {
+					if fi2.Same(fi) {
+						continue FIL
+					}
 				}
+
+				// fi differs from all FileInfo in fil2
+				if !byhash {
+					return nil, byhash, errors.New("inconsistent checksum for " + p2)
+				}
+				filMap[p2] = append(fil2, fi)
 			}
 
 		case 400 <= r.status && r.status < 500:
 			continue
 
 		default:
-			return nil, fmt.Errorf("status %d for %s", r.status, r.path)
+			return nil, byhash, fmt.Errorf("status %d for %s", r.status, r.path)
 		}
 	}
 
-	return fiMap, nil
+	return filMap, byhash, nil
+}
+
+func (m *Mirror) downloadIndices(ctx context.Context,
+	filMap map[string][]*apt.FileInfo, byhash bool) ([]*apt.FileInfo, error) {
+	var fil []*apt.FileInfo
+	for _, fil2 := range filMap {
+		fil = append(fil, fil2...)
+	}
+
+	log.Info("download other indices", map[string]interface{}{
+		"repo":    m.id,
+		"indices": len(fil),
+	})
+
+	return m.downloadFiles(ctx, fil, true, byhash)
+}
+
+func (m *Mirror) downloadItems(ctx context.Context,
+	fiMap map[string]*apt.FileInfo) ([]*apt.FileInfo, error) {
+	fil := make([]*apt.FileInfo, 0, len(fiMap))
+	for _, fi := range fiMap {
+		fil = append(fil, fi)
+	}
+	return m.downloadFiles(ctx, fil, false, false)
 }
 
 func (m *Mirror) downloadFiles(ctx context.Context,
-	fiMap map[string]*apt.FileInfo, allowMissing bool) error {
-	results := make(chan *dlResult, len(fiMap))
+	fil []*apt.FileInfo, allowMissing, byhash bool) ([]*apt.FileInfo, error) {
+	results := make(chan *dlResult, len(fil))
+	dlfil := make([]*apt.FileInfo, 0, len(fil))
 
 	loggedAt := time.Now()
 
 	var reused, downloading, downloaded int
-	for p, fi := range fiMap {
+	for _, fi := range fil {
+		p := fi.Path()
 		now := time.Now()
 		if now.Sub(loggedAt) > progressInterval {
 			loggedAt = now
 			log.Info("download progress", map[string]interface{}{
 				"repo":       m.id,
-				"total":      len(fiMap),
+				"total":      len(fil),
 				"reused":     reused,
 				"downloaded": downloaded,
 			})
 		}
 		if m.current != nil {
-			fi2, fullpath := m.current.Lookup(fi)
+			fi2, fullpath := m.current.Lookup(fi, byhash)
 			if fi2 != nil {
-				err := m.storage.StoreLink(fi2, fullpath)
+				err := m.storeLink(fi2, fullpath, byhash)
 				if err != nil {
-					return errors.Wrap(err, "storage.StoreLink")
+					return nil, errors.Wrap(err, "storeLink")
 				}
+				dlfil = append(dlfil, fi2)
 				reused++
 				if log.Enabled(log.LvDebug) {
 					log.Debug("reuse item", map[string]interface{}{
@@ -393,7 +470,7 @@ func (m *Mirror) downloadFiles(ctx context.Context,
 			case r := <-results:
 				downloaded++
 				if r.err != nil {
-					return errors.Wrap(r.err, "download")
+					return nil, errors.Wrap(r.err, "download")
 				}
 				if allowMissing && r.status == http.StatusNotFound {
 					log.Warn("missing file", map[string]interface{}{
@@ -403,12 +480,13 @@ func (m *Mirror) downloadFiles(ctx context.Context,
 					continue
 				}
 				if r.status != http.StatusOK {
-					return fmt.Errorf("status %d for %s", r.status, r.path)
+					return nil, fmt.Errorf("status %d for %s", r.status, r.path)
 				}
-				err := m.storage.Store(r.fi, r.data)
+				err := m.store(r.fi, r.data, byhash)
 				if err != nil {
-					return errors.Wrap(err, "storage.Store")
+					return nil, errors.Wrap(err, "store")
 				}
+				dlfil = append(dlfil, r.fi)
 			default:
 				goto DOWNLOAD
 			}
@@ -417,11 +495,11 @@ func (m *Mirror) downloadFiles(ctx context.Context,
 	DOWNLOAD:
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return nil, ctx.Err()
 		case <-m.semaphore:
 		}
 
-		go m.download(ctx, p, fi, results)
+		go m.download(ctx, p, fi, byhash, results)
 		downloading++
 	}
 
@@ -429,7 +507,7 @@ func (m *Mirror) downloadFiles(ctx context.Context,
 		r := <-results
 		downloaded++
 		if r.err != nil {
-			return errors.Wrap(r.err, "download")
+			return nil, errors.Wrap(r.err, "download")
 		}
 		if allowMissing && r.status == http.StatusNotFound {
 			log.Warn("missing file", map[string]interface{}{
@@ -439,12 +517,13 @@ func (m *Mirror) downloadFiles(ctx context.Context,
 			continue
 		}
 		if r.status != http.StatusOK {
-			return fmt.Errorf("status %d for %s", r.status, r.path)
+			return nil, fmt.Errorf("status %d for %s", r.status, r.path)
 		}
-		err := m.storage.Store(r.fi, r.data)
+		err := m.store(r.fi, r.data, byhash)
 		if err != nil {
-			return errors.Wrap(err, "storage.Store")
+			return nil, errors.Wrap(err, "store")
 		}
+		dlfil = append(dlfil, r.fi)
 	}
 
 	log.Info("stats", map[string]interface{}{
@@ -453,5 +532,5 @@ func (m *Mirror) downloadFiles(ctx context.Context,
 		"downloaded": downloaded,
 	})
 
-	return nil
+	return dlfil, nil
 }

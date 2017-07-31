@@ -3,6 +3,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Added
+- [mirror] support by-hash index acquisition (#15, #16).
 
 ## [1.2.2] - 2016-08-31
 ### Changed

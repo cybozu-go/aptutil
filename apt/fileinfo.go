@@ -72,13 +72,45 @@ func (fi *FileInfo) CalcChecksums(data []byte) {
 
 // AddPrefix creates a new FileInfo by prepending prefix to the path.
 func (fi *FileInfo) AddPrefix(prefix string) *FileInfo {
-	return &FileInfo{
-		path:      path.Join(path.Clean(prefix), fi.path),
-		size:      fi.size,
-		md5sum:    fi.md5sum,
-		sha1sum:   fi.sha1sum,
-		sha256sum: fi.sha256sum,
+	newFI := *fi
+	newFI.path = path.Join(path.Clean(prefix), fi.path)
+	return &newFI
+}
+
+// MD5SumPath returns the filepath for "by-hash" with md5 checksum.
+// If fi has no checksum, an empty string will be returned.
+func (fi *FileInfo) MD5SumPath() string {
+	if fi.md5sum == nil {
+		return ""
 	}
+	return path.Join(path.Dir(fi.path),
+		"by-hash",
+		"MD5Sum",
+		hex.EncodeToString(fi.md5sum))
+}
+
+// SHA1Path returns the filepath for "by-hash" with sha1 checksum.
+// If fi has no checksum, an empty string will be returned.
+func (fi *FileInfo) SHA1Path() string {
+	if fi.sha1sum == nil {
+		return ""
+	}
+	return path.Join(path.Dir(fi.path),
+		"by-hash",
+		"SHA1",
+		hex.EncodeToString(fi.sha1sum))
+}
+
+// SHA256Path returns the filepath for "by-hash" with sha256 checksum.
+// If fi has no checksum, an empty string will be returned.
+func (fi *FileInfo) SHA256Path() string {
+	if fi.sha256sum == nil {
+		return ""
+	}
+	return path.Join(path.Dir(fi.path),
+		"by-hash",
+		"SHA256",
+		hex.EncodeToString(fi.sha256sum))
 }
 
 type fileInfoJSON struct {

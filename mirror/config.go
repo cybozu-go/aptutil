@@ -90,11 +90,9 @@ func (mc *MirrConfig) ReleaseFiles() []string {
 		l = append(l, path.Clean(path.Join(relpath, "Release.gpg")))
 		l = append(l, path.Clean(path.Join(relpath, "Release.gz")))
 		l = append(l, path.Clean(path.Join(relpath, "Release.bz2")))
-		l = append(l, path.Clean(path.Join(relpath, "Release.xz")))
 		l = append(l, path.Clean(path.Join(relpath, "InRelease")))
 		l = append(l, path.Clean(path.Join(relpath, "InRelease.gz")))
 		l = append(l, path.Clean(path.Join(relpath, "InRelease.bz2")))
-		l = append(l, path.Clean(path.Join(relpath, "InRelease.xz")))
 	}
 
 	return l

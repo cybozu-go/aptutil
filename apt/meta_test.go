@@ -54,21 +54,43 @@ func containsFileInfo(fi *FileInfo, l []*FileInfo) bool {
 	return false
 }
 
-func TestGetFilesFromRelease(t *testing.T) {
+func TestAcquireByHash(t *testing.T) {
 	t.Parallel()
 
-	f, err := os.Open("t/Release")
+	f, err := os.Open("testdata/hash/Release")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer f.Close()
 
-	fil, err := ExtractFileInfo("ubuntu/dists/trusty/Release", f)
+	_, d, err := ExtractFileInfo("ubuntu/dists/trusty/Release", f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !SupportByHash(d) {
+		t.Error(`!SupportByHash(d)`)
+	}
+}
+
+func TestGetFilesFromRelease(t *testing.T) {
+	t.Parallel()
+
+	f, err := os.Open("testdata/af/Release")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	fil, d, err := ExtractFileInfo("ubuntu/dists/trusty/Release", f)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(fil) != 9 {
 		t.Error(`len(fil) != 9`)
+	}
+
+	if SupportByHash(d) {
+		t.Error(`SupportByHash(d)`)
 	}
 
 	md5sum, _ := hex.DecodeString("5c30f072d01cde094a5c07fccd217cf3")
@@ -103,13 +125,13 @@ func TestGetFilesFromRelease(t *testing.T) {
 func TestGetFilesFromPackages(t *testing.T) {
 	t.Parallel()
 
-	f, err := os.Open("t/Packages")
+	f, err := os.Open("testdata/af/Packages")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer f.Close()
 
-	fil, err := ExtractFileInfo("ubuntu/dists/testing/main/binary-amd64/Packages", f)
+	fil, _, err := ExtractFileInfo("ubuntu/dists/testing/main/binary-amd64/Packages", f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,13 +167,13 @@ func TestGetFilesFromPackages(t *testing.T) {
 func TestGetFilesFromSources(t *testing.T) {
 	t.Parallel()
 
-	f, err := os.Open("t/Sources.gz")
+	f, err := os.Open("testdata/af/Sources.gz")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer f.Close()
 
-	fil, err := ExtractFileInfo("ubuntu/dists/testing/main/source/Sources.gz", f)
+	fil, _, err := ExtractFileInfo("ubuntu/dists/testing/main/source/Sources.gz", f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -219,13 +241,13 @@ func TestGetFilesFromSources(t *testing.T) {
 func TestGetFilesFromIndex(t *testing.T) {
 	t.Parallel()
 
-	f, err := os.Open("t/Index")
+	f, err := os.Open("testdata/af/Index")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer f.Close()
 
-	fil, err := ExtractFileInfo("ubuntu/dists/trusty/main/i18n/Index", f)
+	fil, _, err := ExtractFileInfo("ubuntu/dists/trusty/main/i18n/Index", f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -257,13 +279,13 @@ func TestGetFilesFromIndex(t *testing.T) {
 func TestExtractFileInfo(t *testing.T) {
 	t.Parallel()
 
-	f, err := os.Open("t/Packages")
+	f, err := os.Open("testdata/af/Packages")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer f.Close()
 
-	fil, err := ExtractFileInfo("ubuntu/dists/testing/Release.gpg", f)
+	fil, _, err := ExtractFileInfo("ubuntu/dists/testing/Release.gpg", f)
 	if err != nil {
 		t.Fatal(err)
 	}

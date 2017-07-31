@@ -9,7 +9,7 @@ import (
 func TestParserRelease(t *testing.T) {
 	t.Parallel()
 
-	f, err := os.Open("t/Release")
+	f, err := os.Open("testdata/af/Release")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +82,7 @@ func TestParserRelease(t *testing.T) {
 func TestParserInRelease(t *testing.T) {
 	t.Parallel()
 
-	f, err := os.Open("t/InRelease")
+	f, err := os.Open("testdata/af/InRelease")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -121,7 +121,7 @@ func TestParserInRelease(t *testing.T) {
 func TestParserPackages(t *testing.T) {
 	t.Parallel()
 
-	f, err := os.Open("t/Packages")
+	f, err := os.Open("testdata/af/Packages")
 	if err != nil {
 		t.Fatal(err)
 	}

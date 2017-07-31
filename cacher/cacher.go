@@ -133,7 +133,7 @@ func NewCacher(config *Config) (*Cacher, error) {
 		if len(t) != 2 {
 			panic("there should always be a prefix!")
 		}
-		fil, err := apt.ExtractFileInfo(t[1], f)
+		fil, _, err := apt.ExtractFileInfo(t[1], f)
 		f.Close()
 		if err != nil {
 			return nil, errors.Wrap(err, "ExtractFileInfo("+fi.Path()+")")
@@ -340,7 +340,7 @@ func (c *Cacher) download(ctx context.Context, p string, u *url.URL, valid *apt.
 
 	if apt.IsMeta(p) {
 		storage = c.meta
-		fil, err = apt.ExtractFileInfo(t[1], bytes.NewReader(body))
+		fil, _, err = apt.ExtractFileInfo(t[1], bytes.NewReader(body))
 		if err != nil {
 			log.Error("invalid meta data", map[string]interface{}{
 				"path":  p,

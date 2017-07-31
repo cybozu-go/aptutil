@@ -53,6 +53,17 @@ func IsSupported(p string) bool {
 	return false
 }
 
+// SupportByHash returns true if paragraph from Release indicates
+// support for indices acquisition via hash values (by-hash).
+// See https://wiki.debian.org/DebianRepository/Format#indices_acquisition_via_hashsums_.28by-hash.29
+func SupportByHash(d Paragraph) bool {
+	p := d["Acquire-By-Hash"]
+	if len(p) != 1 {
+		return false
+	}
+	return p[0] == "yes"
+}
+
 func parseChecksum(l string) (p string, size uint64, csum []byte, err error) {
 	flds := strings.Fields(l)
 	if len(flds) != 3 {
@@ -75,12 +86,12 @@ func parseChecksum(l string) (p string, size uint64, csum []byte, err error) {
 
 // getFilesFromRelease parses Release or InRelease file and
 // returns a list of *FileInfo pointed in the file.
-func getFilesFromRelease(p string, r io.Reader) ([]*FileInfo, error) {
+func getFilesFromRelease(p string, r io.Reader) ([]*FileInfo, Paragraph, error) {
 	dir := path.Dir(p)
 
 	d, err := NewParser(r).Read()
 	if err != nil {
-		return nil, errors.Wrap(err, "NewParser(r).Read()")
+		return nil, nil, errors.Wrap(err, "NewParser(r).Read()")
 	}
 
 	md5sums := d["MD5Sum"]
@@ -88,7 +99,7 @@ func getFilesFromRelease(p string, r io.Reader) ([]*FileInfo, error) {
 	sha256sums := d["SHA256"]
 
 	if len(md5sums) == 0 && len(sha1sums) == 0 && len(sha256sums) == 0 {
-		return nil, nil
+		return nil, d, nil
 	}
 
 	m := make(map[string]*FileInfo)
@@ -97,7 +108,7 @@ func getFilesFromRelease(p string, r io.Reader) ([]*FileInfo, error) {
 		p, size, csum, err := parseChecksum(l)
 		p = path.Join(dir, path.Clean(p))
 		if err != nil {
-			return nil, errors.Wrap(err, "parseChecksum for md5sums")
+			return nil, nil, errors.Wrap(err, "parseChecksum for md5sums")
 		}
 
 		fi := &FileInfo{
@@ -112,7 +123,7 @@ func getFilesFromRelease(p string, r io.Reader) ([]*FileInfo, error) {
 		p, size, csum, err := parseChecksum(l)
 		p = path.Join(dir, path.Clean(p))
 		if err != nil {
-			return nil, errors.Wrap(err, "parseChecksum for sha1sums")
+			return nil, nil, errors.Wrap(err, "parseChecksum for sha1sums")
 		}
 
 		fi, ok := m[p]
@@ -132,7 +143,7 @@ func getFilesFromRelease(p string, r io.Reader) ([]*FileInfo, error) {
 		p, size, csum, err := parseChecksum(l)
 		p = path.Join(dir, path.Clean(p))
 		if err != nil {
-			return nil, errors.Wrap(err, "parseChecksum for sha256sums")
+			return nil, nil, errors.Wrap(err, "parseChecksum for sha256sums")
 		}
 
 		fi, ok := m[p]
@@ -152,12 +163,12 @@ func getFilesFromRelease(p string, r io.Reader) ([]*FileInfo, error) {
 	for _, fi := range m {
 		l = append(l, fi)
 	}
-	return l, nil
+	return l, d, nil
 }
 
 // getFilesFromPackages parses Packages file and returns
 // a list of *FileInfo pointed in the file.
-func getFilesFromPackages(p string, r io.Reader) ([]*FileInfo, error) {
+func getFilesFromPackages(p string, r io.Reader) ([]*FileInfo, Paragraph, error) {
 	var l []*FileInfo
 	parser := NewParser(r)
 
@@ -167,22 +178,22 @@ func getFilesFromPackages(p string, r io.Reader) ([]*FileInfo, error) {
 			break
 		}
 		if err != nil {
-			return nil, errors.Wrap(err, "parser.Read")
+			return nil, nil, errors.Wrap(err, "parser.Read")
 		}
 
 		filename, ok := d["Filename"]
 		if !ok {
-			return nil, errors.New("no Filename in " + p)
+			return nil, nil, errors.New("no Filename in " + p)
 		}
 		fpath := path.Clean(filename[0])
 
 		strsize, ok := d["Size"]
 		if !ok {
-			return nil, errors.New("no Size in " + p)
+			return nil, nil, errors.New("no Size in " + p)
 		}
 		size, err := strconv.ParseUint(strsize[0], 10, 64)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		fi := &FileInfo{
@@ -192,33 +203,33 @@ func getFilesFromPackages(p string, r io.Reader) ([]*FileInfo, error) {
 		if csum, ok := d["MD5sum"]; ok {
 			b, err := hex.DecodeString(csum[0])
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			fi.md5sum = b
 		}
 		if csum, ok := d["SHA1"]; ok {
 			b, err := hex.DecodeString(csum[0])
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			fi.sha1sum = b
 		}
 		if csum, ok := d["SHA256"]; ok {
 			b, err := hex.DecodeString(csum[0])
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			fi.sha256sum = b
 		}
 		l = append(l, fi)
 	}
 
-	return l, nil
+	return l, nil, nil
 }
 
 // getFilesFromSources parses Sources file and returns
 // a list of *FileInfo pointed in the file.
-func getFilesFromSources(p string, r io.Reader) ([]*FileInfo, error) {
+func getFilesFromSources(p string, r io.Reader) ([]*FileInfo, Paragraph, error) {
 	var l []*FileInfo
 	parser := NewParser(r)
 
@@ -228,23 +239,23 @@ func getFilesFromSources(p string, r io.Reader) ([]*FileInfo, error) {
 			break
 		}
 		if err != nil {
-			return nil, errors.Wrap(err, "parser.Read")
+			return nil, nil, errors.Wrap(err, "parser.Read")
 		}
 
 		dir, ok := d["Directory"]
 		if !ok {
-			return nil, errors.New("no Directory in " + p)
+			return nil, nil, errors.New("no Directory in " + p)
 		}
 		files, ok := d["Files"]
 		if !ok {
-			return nil, errors.New("no Files in " + p)
+			return nil, nil, errors.New("no Files in " + p)
 		}
 
 		m := make(map[string]*FileInfo)
 		for _, l := range files {
 			fname, size, csum, err := parseChecksum(l)
 			if err != nil {
-				return nil, errors.Wrap(err, "parseChecksum for Files")
+				return nil, nil, errors.Wrap(err, "parseChecksum for Files")
 			}
 
 			fpath := path.Clean(path.Join(dir[0], fname))
@@ -259,13 +270,13 @@ func getFilesFromSources(p string, r io.Reader) ([]*FileInfo, error) {
 		for _, l := range d["Checksums-Sha1"] {
 			fname, _, csum, err := parseChecksum(l)
 			if err != nil {
-				return nil, errors.Wrap(err, "parseChecksum for Checksums-Sha1")
+				return nil, nil, errors.Wrap(err, "parseChecksum for Checksums-Sha1")
 			}
 
 			fpath := path.Clean(path.Join(dir[0], fname))
 			fi, ok := m[fpath]
 			if !ok {
-				return nil, errors.New("mismatch between Files and Checksums-Sha1 in " + p)
+				return nil, nil, errors.New("mismatch between Files and Checksums-Sha1 in " + p)
 			}
 			fi.sha1sum = csum
 		}
@@ -273,13 +284,13 @@ func getFilesFromSources(p string, r io.Reader) ([]*FileInfo, error) {
 		for _, l := range d["Checksums-Sha256"] {
 			fname, _, csum, err := parseChecksum(l)
 			if err != nil {
-				return nil, errors.Wrap(err, "parseChecksum for Checksums-Sha256")
+				return nil, nil, errors.Wrap(err, "parseChecksum for Checksums-Sha256")
 			}
 
 			fpath := path.Clean(path.Join(dir[0], fname))
 			fi, ok := m[fpath]
 			if !ok {
-				return nil, errors.New("mismatch between Files and Checksums-Sha256 in " + p)
+				return nil, nil, errors.New("mismatch between Files and Checksums-Sha256 in " + p)
 			}
 			fi.sha256sum = csum
 		}
@@ -289,12 +300,12 @@ func getFilesFromSources(p string, r io.Reader) ([]*FileInfo, error) {
 		}
 	}
 
-	return l, nil
+	return l, nil, nil
 }
 
 // getFilesFromIndex parses i18n/Index file and returns
 // a list of *FileInfo pointed in the file.
-func getFilesFromIndex(p string, r io.Reader) ([]*FileInfo, error) {
+func getFilesFromIndex(p string, r io.Reader) ([]*FileInfo, Paragraph, error) {
 	return getFilesFromRelease(p, r)
 }
 
@@ -302,10 +313,13 @@ func getFilesFromIndex(p string, r io.Reader) ([]*FileInfo, error) {
 // Release, Packages, or Sources and return a list of *FileInfo
 // listed in the file.
 //
+// If the index is Release, InRelease, or Index, this function
+// also returns non-nil Paragraph data of the index.
+//
 // p is the relative path of the file.
-func ExtractFileInfo(p string, r io.Reader) ([]*FileInfo, error) {
+func ExtractFileInfo(p string, r io.Reader) ([]*FileInfo, Paragraph, error) {
 	if !IsMeta(p) {
-		return nil, errors.New("not a meta data file: " + p)
+		return nil, nil, errors.New("not a meta data file: " + p)
 	}
 
 	base := path.Base(p)
@@ -316,7 +330,7 @@ func ExtractFileInfo(p string, r io.Reader) ([]*FileInfo, error) {
 	case ".gz":
 		gz, err := gzip.NewReader(r)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		defer gz.Close()
 		r = gz
@@ -325,7 +339,7 @@ func ExtractFileInfo(p string, r io.Reader) ([]*FileInfo, error) {
 		r = bzip2.NewReader(r)
 		base = base[:len(base)-4]
 	default:
-		return nil, errors.New("unsupported file extension: " + ext)
+		return nil, nil, errors.New("unsupported file extension: " + ext)
 	}
 
 	switch base {
@@ -338,5 +352,5 @@ func ExtractFileInfo(p string, r io.Reader) ([]*FileInfo, error) {
 	case "Index":
 		return getFilesFromIndex(p, r)
 	}
-	return nil, nil
+	return nil, nil, nil
 }
