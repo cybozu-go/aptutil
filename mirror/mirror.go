@@ -351,6 +351,28 @@ RETRY:
 	r.data = data
 }
 
+func addFileInfoToList(fi *apt.FileInfo, m map[string][]*apt.FileInfo, byhash bool) error {
+	p := fi.Path()
+	fil, ok := m[p]
+	if !ok {
+		m[p] = []*apt.FileInfo{fi}
+		return nil
+	}
+
+	for _, existing := range fil {
+		if existing.Same(fi) {
+			return nil
+		}
+	}
+
+	// fi differs from all FileInfo in fil
+	if !byhash {
+		return errors.New("inconsistent checksum for " + p)
+	}
+	m[p] = append(fil, fi)
+	return nil
+}
+
 func (m *Mirror) downloadRelease(ctx context.Context) (map[string][]*apt.FileInfo, bool, error) {
 	releases := m.mc.ReleaseFiles()
 	results := make(chan *dlResult, len(releases))
@@ -372,48 +394,34 @@ func (m *Mirror) downloadRelease(ctx context.Context) (map[string][]*apt.FileInf
 		if r.err != nil {
 			return nil, byhash, errors.Wrap(r.err, "download")
 		}
-		switch {
-		case r.status == http.StatusOK:
-			err := m.storage.Store(r.fi, r.data)
-			if err != nil {
-				return nil, byhash, errors.Wrap(err, "storage.Store")
-			}
-			fil, d, err := apt.ExtractFileInfo(r.path, bytes.NewReader(r.data))
-			if err != nil {
-				return nil, byhash, errors.Wrap(err, "ExtractFileInfo: "+r.path)
-			}
 
-			if byhash && path.Base(r.path) != "Release.gpg" {
-				byhash = apt.SupportByHash(d)
-			}
-
-		FIL:
-			for _, fi := range fil {
-				p2 := fi.Path()
-				fil2, ok := filMap[p2]
-				if !ok {
-					filMap[p2] = []*apt.FileInfo{fi}
-					continue
-				}
-
-				for _, fi2 := range fil2 {
-					if fi2.Same(fi) {
-						continue FIL
-					}
-				}
-
-				// fi differs from all FileInfo in fil2
-				if !byhash {
-					return nil, byhash, errors.New("inconsistent checksum for " + p2)
-				}
-				filMap[p2] = append(fil2, fi)
-			}
-
-		case 400 <= r.status && r.status < 500:
+		if 400 <= r.status && r.status < 500 {
 			continue
+		}
 
-		default:
+		if r.status != http.StatusOK {
 			return nil, byhash, fmt.Errorf("status %d for %s", r.status, r.path)
+		}
+
+		// 200 OK
+		err := m.storage.Store(r.fi, r.data)
+		if err != nil {
+			return nil, byhash, errors.Wrap(err, "storage.Store")
+		}
+		fil, d, err := apt.ExtractFileInfo(r.path, bytes.NewReader(r.data))
+		if err != nil {
+			return nil, byhash, errors.Wrap(err, "ExtractFileInfo: "+r.path)
+		}
+
+		if byhash && path.Base(r.path) != "Release.gpg" {
+			byhash = apt.SupportByHash(d)
+		}
+
+		for _, fi := range fil {
+			err = addFileInfoToList(fi, filMap, byhash)
+			if err != nil {
+				return nil, byhash, err
+			}
 		}
 	}
 
