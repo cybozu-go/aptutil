@@ -213,6 +213,14 @@ func (s *Storage) StoreLinkWithHash(fi *apt.FileInfo, fullpath string) error {
 	} else {
 		s.info[p] = fi
 	}
+
+	// This may overwrite existing entries in s.info if another item
+	// accidentally has the same checksums.  In such cases, Storage.Lookup
+	// for the previous item will return nil and go-apt-mirror would
+	// fail to reuse the item.
+	//
+	// Although we may fix the problem in Storage.Lookup, at this point
+	// we leave it as it is not too bad.
 	s.info[md5p] = fi
 	s.info[sha1p] = fi
 	s.info[sha256p] = fi
