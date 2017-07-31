@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file.
 ### Added
 - [mirror] support by-hash index acquisition (#15, #16).
 
+### Changed
+- [cacher] workaround for bad contents in Release (#13, #17).
+
 ## [1.2.2] - 2016-08-31
 ### Changed
 - Check errors of wrong log configurations.
