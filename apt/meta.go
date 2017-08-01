@@ -161,9 +161,9 @@ func getFilesFromRelease(p string, r io.Reader) ([]*FileInfo, Paragraph, error) 
 
 	// WORKAROUND: some (e.g. dell) repositories have invalid Release
 	// that contains wrong checksum for Release itself.  Ignore them.
-	delete(m, "Release")
-	delete(m, "Release.gpg")
-	delete(m, "InRelease")
+	delete(m, path.Join(dir, "Release"))
+	delete(m, path.Join(dir, "Release.gpg"))
+	delete(m, path.Join(dir, "InRelease"))
 
 	l := make([]*FileInfo, 0, len(m))
 	for _, fi := range m {
