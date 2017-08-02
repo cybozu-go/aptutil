@@ -77,25 +77,27 @@ func (mc *MirrConfig) Check() error {
 }
 
 // ReleaseFiles generates a list relative paths to "Release",
-// "Release.gpg", or "InRelease" files.
-func (mc *MirrConfig) ReleaseFiles() []string {
-	var l []string
-
-	for _, suite := range mc.Suites {
-		relpath := suite
-		if !isFlat(suite) {
-			relpath = path.Join("dists", suite)
+// "Release.gpg", or "InRelease" files and publishes it on the given
+// output channel.
+func (mc *MirrConfig) ReleaseFiles() <-chan string {
+	releaseFiles := make(chan string, 7*len(mc.Suites))
+	go func() {
+		for _, suite := range mc.Suites {
+			relpath := suite
+			if !isFlat(suite) {
+				relpath = path.Join("dists", suite)
+			}
+			releaseFiles <- path.Clean(path.Join(relpath, "Release"))
+			releaseFiles <- path.Clean(path.Join(relpath, "Release.gpg"))
+			releaseFiles <- path.Clean(path.Join(relpath, "Release.gz"))
+			releaseFiles <- path.Clean(path.Join(relpath, "Release.bz2"))
+			releaseFiles <- path.Clean(path.Join(relpath, "InRelease"))
+			releaseFiles <- path.Clean(path.Join(relpath, "InRelease.gz"))
+			releaseFiles <- path.Clean(path.Join(relpath, "InRelease.bz2"))
 		}
-		l = append(l, path.Clean(path.Join(relpath, "Release")))
-		l = append(l, path.Clean(path.Join(relpath, "Release.gpg")))
-		l = append(l, path.Clean(path.Join(relpath, "Release.gz")))
-		l = append(l, path.Clean(path.Join(relpath, "Release.bz2")))
-		l = append(l, path.Clean(path.Join(relpath, "InRelease")))
-		l = append(l, path.Clean(path.Join(relpath, "InRelease.gz")))
-		l = append(l, path.Clean(path.Join(relpath, "InRelease.bz2")))
-	}
-
-	return l
+		close(releaseFiles)
+	}()
+	return releaseFiles
 }
 
 // Resolve returns *url.URL for a relative path.

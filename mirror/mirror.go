@@ -178,14 +178,14 @@ func (m *Mirror) replaceLink() error {
 	return DirSync(m.dir)
 }
 
-// Update updates mirrored files.
-func (m *Mirror) Update(ctx context.Context) error {
+// UpdateMetadata updates the repository metadata only, not downloading any packages
+func (m *Mirror) UpdateMetadata(ctx context.Context) (map[string]*apt.FileInfo, error) {
 	log.Info("download Release/InRelease", map[string]interface{}{
 		"repo": m.id,
 	})
 	indexMap, byhash, err := m.downloadRelease(ctx)
 	if err != nil {
-		return errors.Wrap(err, m.id)
+		return nil, errors.Wrap(err, m.id)
 	}
 
 	if byhash {
@@ -195,7 +195,7 @@ func (m *Mirror) Update(ctx context.Context) error {
 	}
 
 	if len(indexMap) == 0 {
-		return errors.New(m.id + ": found no Release/InRelease")
+		return nil, errors.New(m.id + ": found no Release/InRelease")
 	}
 
 	// WORKAROUND: some (zabbix) repositories returns wrong contents
@@ -217,11 +217,22 @@ func (m *Mirror) Update(ctx context.Context) error {
 	// download (or reuse) all indices
 	indices, err := m.downloadIndices(ctx, indexMap, byhash)
 	if err != nil {
-		return errors.Wrap(err, m.id)
+		return nil, errors.Wrap(err, m.id)
 	}
 
 	// extract file information from indices
 	itemMap, err := m.extractItems(indices, indexMap, byhash)
+	if err != nil {
+		return nil, errors.Wrap(err, m.id)
+	}
+
+	return itemMap, nil
+}
+
+// Update updates mirrored files.
+func (m *Mirror) Update(ctx context.Context) error {
+	// extract file information from indices
+	itemMap, err := m.UpdateMetadata(ctx)
 	if err != nil {
 		return errors.Wrap(err, m.id)
 	}
@@ -386,24 +397,36 @@ func addFileInfoToList(fi *apt.FileInfo, m map[string][]*apt.FileInfo, byhash bo
 	return nil
 }
 
+func (m *Mirror) downloadReleaseFiles(ctx context.Context, releases <-chan string) <-chan *dlResult {
+	results := make(chan *dlResult)
+
+	go func() {
+		for p := range releases {
+			select {
+			case <-ctx.Done():
+				// return nil, false, ctx.Err()
+				close(results)
+				break
+			case <-m.semaphore:
+			}
+			m.download(ctx, p, nil, false, results)
+		}
+		close(results)
+	}()
+	return results
+}
+
 func (m *Mirror) downloadRelease(ctx context.Context) (map[string][]*apt.FileInfo, bool, error) {
 	releases := m.mc.ReleaseFiles()
-	results := make(chan *dlResult, len(releases))
-
-	for _, p := range releases {
-		select {
-		case <-ctx.Done():
-			return nil, false, ctx.Err()
-		case <-m.semaphore:
-		}
-
-		go m.download(ctx, p, nil, false, results)
-	}
+	results := m.downloadReleaseFiles(ctx, releases)
 
 	byhash := true
 	filMap := make(map[string][]*apt.FileInfo)
-	for i := 0; i < len(releases); i++ {
-		r := <-results
+	for {
+		r, more := <-results
+		if !more {
+			break
+		}
 		if r.err != nil {
 			return nil, byhash, errors.Wrap(r.err, "download")
 		}
