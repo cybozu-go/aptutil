@@ -121,7 +121,7 @@ func (m *Mirror) storeLink(fi *apt.FileInfo, fp string, byhash bool) error {
 	return m.storage.StoreLink(fi, fp)
 }
 
-func (m *Mirror) extractItems(indices []*apt.FileInfo, indexMap map[string][]*apt.FileInfo) (map[string]*apt.FileInfo, error) {
+func (m *Mirror) extractItems(indices []*apt.FileInfo, indexMap map[string][]*apt.FileInfo, byhash bool) (map[string]*apt.FileInfo, error) {
 	itemMap := make(map[string]*apt.FileInfo)
 
 	for _, index := range indices {
@@ -129,7 +129,11 @@ func (m *Mirror) extractItems(indices []*apt.FileInfo, indexMap map[string][]*ap
 		if !m.mc.MatchingIndex(p) || !apt.IsSupported(p) {
 			continue
 		}
-		f, err := m.storage.Open(p)
+		hashPath := p
+		if byhash {
+			hashPath = index.SHA256Path()
+		}
+		f, err := m.storage.Open(hashPath)
 		if err != nil {
 			return nil, err
 		}
@@ -217,7 +221,7 @@ func (m *Mirror) Update(ctx context.Context) error {
 	}
 
 	// extract file information from indices
-	itemMap, err := m.extractItems(indices, indexMap)
+	itemMap, err := m.extractItems(indices, indexMap, byhash)
 	if err != nil {
 		return errors.Wrap(err, m.id)
 	}
