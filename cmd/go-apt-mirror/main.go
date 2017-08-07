@@ -38,7 +38,7 @@ func main() {
 		log.ErrorExit(err)
 	}
 
-	err = mirror.Run(config, flag.Args())
+	err = mirror.Run(config, flag.Args(), mirror.Complete)
 	if err != nil {
 		log.ErrorExit(err)
 	}

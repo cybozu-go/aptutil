@@ -16,7 +16,15 @@ const (
 	lockFilename = ".lock"
 )
 
-func updateMirrors(ctx context.Context, c *Config, mirrors []string) error {
+// UpdateFunction implementations can be used to pass different implementations to enable code reuse.
+type UpdateFunction func(*Mirror) func(context.Context) error
+
+// Complete runs a complete mirror process: release files, index files and packages
+func Complete(m *Mirror) func(context.Context) error {
+	return m.Update
+}
+
+func updateMirrors(ctx context.Context, c *Config, mirrors []string, strategy UpdateFunction) error {
 	t := time.Now()
 
 	var ml []*Mirror
@@ -34,7 +42,7 @@ func updateMirrors(ctx context.Context, c *Config, mirrors []string) error {
 	env := cmd.NewEnvironment(ctx)
 
 	for _, m := range ml {
-		env.Go(m.Update)
+		env.Go(strategy(m))
 	}
 	env.Stop()
 	err := env.Wait()
@@ -108,7 +116,7 @@ func gc(ctx context.Context, c *Config) error {
 // mirrors is a list of mirror IDs defined in the configuration file
 // (or keys in c.Mirrors).  If mirrors is an empty list, all mirrors
 // will be updated.
-func Run(c *Config, mirrors []string) error {
+func Run(c *Config, mirrors []string, strategy UpdateFunction) error {
 	lockFile := filepath.Join(c.Dir, lockFilename)
 	f, err := os.Open(lockFile)
 	switch {
@@ -137,7 +145,7 @@ func Run(c *Config, mirrors []string) error {
 	}
 
 	cmd.Go(func(ctx context.Context) error {
-		err := updateMirrors(ctx, c, mirrors)
+		err := updateMirrors(ctx, c, mirrors, strategy)
 		if err != nil {
 			return err
 		}
