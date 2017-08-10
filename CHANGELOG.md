@@ -3,6 +3,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Changed
+- [mirror] failed to detect by-hash support in some cases (#21).
 
 ## [1.3.0] - 2017-08-02
 ### Added

@@ -107,11 +107,17 @@ func TestMirrorConfig(t *testing.T) {
 	}
 
 	m := make(map[string]struct{})
-	for _, p := range mc.ReleaseFiles() {
+	for _, p := range mc.ReleaseFiles("trusty") {
 		m[p] = struct{}{}
 	}
 	if _, ok := m["dists/trusty/Release"]; !ok {
 		t.Error(`_, ok := m["dists/trusty/Release"]; !ok`)
+	}
+	if _, ok := m["dists/trusty-updates/InRelease"]; ok {
+		t.Error(`_, ok := m["dists/trusty-updates/InRelease"]; ok`)
+	}
+	for _, p := range mc.ReleaseFiles("trusty-updates") {
+		m[p] = struct{}{}
 	}
 	if _, ok := m["dists/trusty-updates/InRelease"]; !ok {
 		t.Error(`_, ok := m["dists/trusty-updates/InRelease"]; !ok`)
@@ -160,16 +166,23 @@ func TestMirrorConfig(t *testing.T) {
 	if err := mc.Check(); err != nil {
 		t.Error(err)
 	}
+
 	m = make(map[string]struct{})
-	for _, p := range mc.ReleaseFiles() {
+	for _, p := range mc.ReleaseFiles("12.04/") {
 		m[p] = struct{}{}
 	}
 	if _, ok := m["12.04/Release"]; !ok {
 		t.Error(`_, ok := m["12.04/Release"]; !ok`)
 	}
+
+	m = make(map[string]struct{})
+	for _, p := range mc.ReleaseFiles("14.04/") {
+		m[p] = struct{}{}
+	}
 	if _, ok := m["14.04/InRelease"]; !ok {
 		t.Error(`_, ok := m["14.04/InRelease"]; !ok`)
 	}
+
 	correct = "http://my.local.domain/cybozu/14.04/cybozu_1.0.0_amd64.deb"
 	if mc.Resolve("./14.04/cybozu_1.0.0_amd64.deb").String() != correct {
 		t.Error(`mc.Resolve("14.04/cybozu_1.0.0_amd64.deb").String() != correct`)
