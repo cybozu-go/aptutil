@@ -78,22 +78,20 @@ func (mc *MirrConfig) Check() error {
 
 // ReleaseFiles generates a list relative paths to "Release",
 // "Release.gpg", or "InRelease" files.
-func (mc *MirrConfig) ReleaseFiles() []string {
+func (mc *MirrConfig) ReleaseFiles(suite string) []string {
 	var l []string
 
-	for _, suite := range mc.Suites {
-		relpath := suite
-		if !isFlat(suite) {
-			relpath = path.Join("dists", suite)
-		}
-		l = append(l, path.Clean(path.Join(relpath, "Release")))
-		l = append(l, path.Clean(path.Join(relpath, "Release.gpg")))
-		l = append(l, path.Clean(path.Join(relpath, "Release.gz")))
-		l = append(l, path.Clean(path.Join(relpath, "Release.bz2")))
-		l = append(l, path.Clean(path.Join(relpath, "InRelease")))
-		l = append(l, path.Clean(path.Join(relpath, "InRelease.gz")))
-		l = append(l, path.Clean(path.Join(relpath, "InRelease.bz2")))
+	relpath := suite
+	if !isFlat(suite) {
+		relpath = path.Join("dists", suite)
 	}
+	l = append(l, path.Clean(path.Join(relpath, "Release")))
+	l = append(l, path.Clean(path.Join(relpath, "Release.gpg")))
+	l = append(l, path.Clean(path.Join(relpath, "Release.gz")))
+	l = append(l, path.Clean(path.Join(relpath, "Release.bz2")))
+	l = append(l, path.Clean(path.Join(relpath, "InRelease")))
+	l = append(l, path.Clean(path.Join(relpath, "InRelease.gz")))
+	l = append(l, path.Clean(path.Join(relpath, "InRelease.bz2")))
 
 	return l
 }

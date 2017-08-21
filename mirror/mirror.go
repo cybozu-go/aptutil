@@ -121,9 +121,7 @@ func (m *Mirror) storeLink(fi *apt.FileInfo, fp string, byhash bool) error {
 	return m.storage.StoreLink(fi, fp)
 }
 
-func (m *Mirror) extractItems(indices []*apt.FileInfo, indexMap map[string][]*apt.FileInfo, byhash bool) (map[string]*apt.FileInfo, error) {
-	itemMap := make(map[string]*apt.FileInfo)
-
+func (m *Mirror) extractItems(indices []*apt.FileInfo, indexMap map[string][]*apt.FileInfo, itemMap map[string]*apt.FileInfo, byhash bool) error {
 	for _, index := range indices {
 		p := index.Path()
 		if !m.mc.MatchingIndex(p) || !apt.IsSupported(p) {
@@ -135,13 +133,13 @@ func (m *Mirror) extractItems(indices []*apt.FileInfo, indexMap map[string][]*ap
 		}
 		f, err := m.storage.Open(hashPath)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		fil, _, err := apt.ExtractFileInfo(p, f)
 		f.Close()
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		for _, fi := range fil {
@@ -153,7 +151,7 @@ func (m *Mirror) extractItems(indices []*apt.FileInfo, indexMap map[string][]*ap
 			itemMap[fipath] = fi
 		}
 	}
-	return itemMap, nil
+	return nil
 }
 
 func (m *Mirror) replaceLink() error {
@@ -180,17 +178,61 @@ func (m *Mirror) replaceLink() error {
 
 // Update updates mirrored files.
 func (m *Mirror) Update(ctx context.Context) error {
-	log.Info("download Release/InRelease", map[string]interface{}{
+	itemMap := make(map[string]*apt.FileInfo)
+
+	for _, suite := range m.mc.Suites {
+		err := m.updateSuite(ctx, suite, itemMap)
+		if err != nil {
+			return err
+		}
+	}
+
+	// download all files matching the configuration.
+	log.Info("download items", map[string]interface{}{
+		"repo":  m.id,
+		"items": len(itemMap),
+	})
+	_, err := m.downloadItems(ctx, itemMap)
+	if err != nil {
+		return errors.Wrap(err, m.id)
+	}
+
+	// all files are downloaded (or reused)
+	log.Info("saving meta data", map[string]interface{}{
 		"repo": m.id,
 	})
-	indexMap, byhash, err := m.downloadRelease(ctx)
+	err = m.storage.Save()
+	if err != nil {
+		return errors.Wrap(err, m.id)
+	}
+
+	// replace the symlink atomically
+	err = m.replaceLink()
+	if err != nil {
+		return errors.Wrap(err, m.id)
+	}
+
+	log.Info("update succeeded", map[string]interface{}{
+		"repo": m.id,
+	})
+	return nil
+}
+
+// updateSuite partially updates mirror for a suite.
+func (m *Mirror) updateSuite(ctx context.Context, suite string, itemMap map[string]*apt.FileInfo) error {
+	log.Info("download Release/InRelease", map[string]interface{}{
+		"repo":  m.id,
+		"suite": suite,
+	})
+	indexMap, byhash, err := m.downloadRelease(ctx, suite)
 	if err != nil {
 		return errors.Wrap(err, m.id)
 	}
 
 	if byhash {
 		log.Info("detected by-hash support", map[string]interface{}{
-			"repo": m.id,
+			"repo":  m.id,
+			"suite": suite,
 		})
 	}
 
@@ -221,39 +263,10 @@ func (m *Mirror) Update(ctx context.Context) error {
 	}
 
 	// extract file information from indices
-	itemMap, err := m.extractItems(indices, indexMap, byhash)
+	err = m.extractItems(indices, indexMap, itemMap, byhash)
 	if err != nil {
 		return errors.Wrap(err, m.id)
 	}
-
-	// download all files matching the configuration.
-	log.Info("download items", map[string]interface{}{
-		"repo":  m.id,
-		"items": len(itemMap),
-	})
-	_, err = m.downloadItems(ctx, itemMap)
-	if err != nil {
-		return errors.Wrap(err, m.id)
-	}
-
-	// all files are downloaded (or reused)
-	log.Info("saving meta data", map[string]interface{}{
-		"repo": m.id,
-	})
-	err = m.storage.Save()
-	if err != nil {
-		return errors.Wrap(err, m.id)
-	}
-
-	// replace the symlink atomically
-	err = m.replaceLink()
-	if err != nil {
-		return errors.Wrap(err, m.id)
-	}
-
-	log.Info("update succeeded", map[string]interface{}{
-		"repo": m.id,
-	})
 	return nil
 }
 
@@ -386,8 +399,8 @@ func addFileInfoToList(fi *apt.FileInfo, m map[string][]*apt.FileInfo, byhash bo
 	return nil
 }
 
-func (m *Mirror) downloadRelease(ctx context.Context) (map[string][]*apt.FileInfo, bool, error) {
-	releases := m.mc.ReleaseFiles()
+func (m *Mirror) downloadRelease(ctx context.Context, suite string) (map[string][]*apt.FileInfo, bool, error) {
+	releases := m.mc.ReleaseFiles(suite)
 	results := make(chan *dlResult, len(releases))
 
 	for _, p := range releases {
