@@ -3,6 +3,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+
+## [1.3.2] - 2017-09-01
 ### Changed
 - [mirror] file modes of by-hash indices were erroneously 0600.
 
@@ -53,7 +55,8 @@ All notable changes to this project will be documented in this file.
 
 [cmd]: https://github.com/cybozu-go/cmd
 [spec]: https://github.com/cybozu-go/cmd/blob/master/README.md#specifications
-[Unreleased]: https://github.com/cybozu-go/aptutil/compare/v1.3.1...HEAD
+[Unreleased]: https://github.com/cybozu-go/aptutil/compare/v1.3.2...HEAD
+[1.3.1]: https://github.com/cybozu-go/aptutil/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/cybozu-go/aptutil/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/cybozu-go/aptutil/compare/v1.2.2...v1.3.0
 [1.2.2]: https://github.com/cybozu-go/aptutil/compare/v1.2.1...v1.2.2
