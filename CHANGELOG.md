@@ -3,6 +3,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Changed
+- [mirror] file modes of by-hash indices were erroneously 0600.
 
 ## [1.3.1] - 2017-08-21
 ### Changed
