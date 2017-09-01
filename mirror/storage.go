@@ -163,6 +163,10 @@ func (s *Storage) StoreWithHash(fi *apt.FileInfo, data []byte) error {
 	if err != nil {
 		return errors.Wrap(err, "StoreWithHash")
 	}
+	err = os.Chmod(tmpf.Name(), 0644)
+	if err != nil {
+		return errors.Wrap(err, "StoreWithHash")
+	}
 
 	return s.StoreLinkWithHash(fi, tmpf.Name())
 }
