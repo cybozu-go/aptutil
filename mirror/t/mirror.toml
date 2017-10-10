@@ -21,4 +21,4 @@ architectures = ["amd64"]
 
 [mirror.flat]
 url = "http://my.local.domain/cybozu"
-suites = ["12.04/", "14.04/"]
+suites = ["12.04/", "14.04/", "/"]

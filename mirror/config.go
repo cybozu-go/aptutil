@@ -85,6 +85,11 @@ func (mc *MirrConfig) ReleaseFiles(suite string) []string {
 	if !isFlat(suite) {
 		relpath = path.Join("dists", suite)
 	}
+	// <suite "/"> == <empty relative path ""> + <flat repository indicator "/">
+	//             != <absolute path "/">
+	if suite == "/" {
+		relpath = ""
+	}
 	l = append(l, path.Clean(path.Join(relpath, "Release")))
 	l = append(l, path.Clean(path.Join(relpath, "Release.gpg")))
 	l = append(l, path.Clean(path.Join(relpath, "Release.gz")))

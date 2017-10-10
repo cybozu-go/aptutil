@@ -183,6 +183,14 @@ func TestMirrorConfig(t *testing.T) {
 		t.Error(`_, ok := m["14.04/InRelease"]; !ok`)
 	}
 
+	m = make(map[string]struct{})
+	for _, p := range mc.ReleaseFiles("/") {
+		m[p] = struct{}{}
+	}
+	if _, ok := m["Release.gz"]; !ok {
+		t.Error(`_, ok := m["Release.gz"]; !ok`)
+	}
+
 	correct = "http://my.local.domain/cybozu/14.04/cybozu_1.0.0_amd64.deb"
 	if mc.Resolve("./14.04/cybozu_1.0.0_amd64.deb").String() != correct {
 		t.Error(`mc.Resolve("14.04/cybozu_1.0.0_amd64.deb").String() != correct`)
