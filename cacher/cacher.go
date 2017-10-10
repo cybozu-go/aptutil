@@ -4,8 +4,8 @@ package cacher
 // repository items.
 
 import (
-	"bytes"
 	"context"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -225,6 +225,11 @@ func (c *Cacher) maintRelease(ctx context.Context, p string, withGPG bool) {
 	}
 }
 
+func closeRespBody(r *http.Response) {
+	io.Copy(ioutil.Discard, r.Body)
+	r.Body.Close()
+}
+
 // Download downloads an item and caches it.
 //
 // If valid is not nil, the downloaded data is validated against it.
@@ -307,14 +312,19 @@ func (c *Cacher) download(ctx context.Context, p string, u *url.URL, valid *apt.
 		})
 		return
 	}
-	body, err := ioutil.ReadAll(resp.Body)
-	resp.Body.Close()
 
+	defer closeRespBody(resp)
 	statusCode = resp.StatusCode
 	if statusCode != 200 {
 		return
 	}
 
+	storage := c.items
+	if apt.IsMeta(p) {
+		storage = c.meta
+	}
+
+	tempfile, err := storage.TempFile()
 	if err != nil {
 		log.Warn("GET failed", map[string]interface{}{
 			"url":   u.String(),
@@ -322,8 +332,27 @@ func (c *Cacher) download(ctx context.Context, p string, u *url.URL, valid *apt.
 		})
 		return
 	}
+	defer func() {
+		tempfile.Close()
+		os.Remove(tempfile.Name())
+	}()
 
-	fi := apt.MakeFileInfo(p, body)
+	fi, err := apt.CopyWithFileInfo(tempfile, resp.Body, p)
+	if err != nil {
+		log.Warn("GET failed", map[string]interface{}{
+			"url":   u.String(),
+			"error": err.Error(),
+		})
+		return
+	}
+	err = tempfile.Sync()
+	if err != nil {
+		log.Warn("tempfile.Sync failed", map[string]interface{}{
+			"url":   u.String(),
+			"error": err.Error(),
+		})
+		return
+	}
 	if valid != nil && !valid.Same(fi) {
 		log.Warn("downloaded data is not valid", map[string]interface{}{
 			"url": u.String(),
@@ -331,12 +360,18 @@ func (c *Cacher) download(ctx context.Context, p string, u *url.URL, valid *apt.
 		return
 	}
 
-	storage := c.items
 	var fil []*apt.FileInfo
 
 	if t := strings.SplitN(path.Clean(p), "/", 2); len(t) == 2 && apt.IsMeta(t[1]) {
-		storage = c.meta
-		fil, _, err = apt.ExtractFileInfo(t[1], bytes.NewReader(body))
+		_, err = tempfile.Seek(0, os.SEEK_SET)
+		if err != nil {
+			log.Error("failed to reset tempfile offset", map[string]interface{}{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		fil, _, err = apt.ExtractFileInfo(t[1], tempfile)
 		if err != nil {
 			log.Error("invalid meta data", map[string]interface{}{
 				"path":  p,
@@ -350,7 +385,10 @@ func (c *Cacher) download(ctx context.Context, p string, u *url.URL, valid *apt.
 	c.fiLock.Lock()
 	defer c.fiLock.Unlock()
 
-	if err := storage.Insert(body, fi); err != nil {
+	// To keep consistency between Cacher and Storage so that
+	// both have the same set of FileInfo, storage.Insert need to be
+	// guarded by c.fiLock.
+	if err := storage.Insert(tempfile.Name(), fi); err != nil {
 		log.Error("could not save an item", map[string]interface{}{
 			"path":  p,
 			"error": err.Error(),

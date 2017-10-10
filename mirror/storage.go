@@ -77,6 +77,14 @@ func (s *Storage) Load() error {
 	return nil
 }
 
+// TempFile creates a new temporary file
+// in the directory specified in Storage,
+// opens the file for reading and writing,
+// and returns the resulting *os.File.
+func (s *Storage) TempFile() (*os.File, error) {
+	return ioutil.TempFile(s.dir, "_tmp")
+}
+
 // Save saves storage contents persistently.
 func (s *Storage) Save() error {
 	s.mu.Lock()
@@ -99,76 +107,6 @@ func (s *Storage) Save() error {
 	DirSyncTree(s.dir)
 
 	return nil
-}
-
-// Store stores a file into this storage.
-func (s *Storage) Store(fi *apt.FileInfo, data []byte) error {
-	p := fi.Path()
-
-	s.mu.Lock()
-	_, ok := s.info[p]
-	if ok {
-		s.mu.Unlock()
-		return errors.New("already stored: " + p)
-	}
-	s.info[p] = fi
-	s.mu.Unlock()
-
-	fp := filepath.Join(s.dir, s.prefix, filepath.Clean(p))
-	d := filepath.Dir(fp)
-
-	err := os.MkdirAll(d, 0755)
-	if err != nil {
-		return err
-	}
-
-	f, err := os.OpenFile(fp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	_, err = f.Write(data)
-	if err != nil {
-		return err
-	}
-	return f.Sync()
-}
-
-// StoreWithHash stores a file into this storage with additional
-// hard links for by-hash retrieval.
-func (s *Storage) StoreWithHash(fi *apt.FileInfo, data []byte) error {
-	fp := filepath.Join(s.dir, s.prefix, filepath.Clean(fi.Path()))
-	d := filepath.Dir(fp)
-
-	err := os.MkdirAll(d, 0755)
-	if err != nil {
-		return err
-	}
-
-	tmpf, err := ioutil.TempFile(d, "tmp")
-	if err != nil {
-		return errors.Wrap(err, "StoreWithHash")
-	}
-	defer func() {
-		tmpf.Close()
-		os.Remove(tmpf.Name())
-	}()
-
-	_, err = tmpf.Write(data)
-	if err != nil {
-		return errors.Wrap(err, "StoreWithHash")
-	}
-	err = tmpf.Sync()
-	if err != nil {
-		return errors.Wrap(err, "StoreWithHash")
-	}
-	err = os.Chmod(tmpf.Name(), 0644)
-	if err != nil {
-		return errors.Wrap(err, "StoreWithHash")
-	}
-
-	return s.StoreLinkWithHash(fi, tmpf.Name())
 }
 
 // StoreLink stores a hard link to a file into this storage.

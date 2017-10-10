@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"io"
 	"path"
 
 	"github.com/pkg/errors"
@@ -164,17 +165,32 @@ func (fi *FileInfo) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// CopyWithFileInfo copies from src to dst until either EOF is reached
+// on src or an error occurs, and returns FileInfo calculated while copying.
+func CopyWithFileInfo(dst io.Writer, src io.Reader, p string) (*FileInfo, error) {
+	md5hash := md5.New()
+	sha1hash := sha1.New()
+	sha256hash := sha256.New()
+
+	w := io.MultiWriter(md5hash, sha1hash, sha256hash, dst)
+	n, err := io.Copy(w, src)
+	if err != nil {
+		return nil, err
+	}
+
+	return &FileInfo{
+		path:      p,
+		size:      uint64(n),
+		md5sum:    md5hash.Sum(nil),
+		sha1sum:   sha1hash.Sum(nil),
+		sha256sum: sha256hash.Sum(nil),
+	}, nil
+}
+
 // MakeFileInfoNoChecksum constructs a FileInfo without calculating checksums.
 func MakeFileInfoNoChecksum(path string, size uint64) *FileInfo {
 	return &FileInfo{
 		path: path,
 		size: size,
 	}
-}
-
-// MakeFileInfo constructs a FileInfo for a given data.
-func MakeFileInfo(path string, data []byte) *FileInfo {
-	fi := MakeFileInfoNoChecksum(path, 0)
-	fi.CalcChecksums(data)
-	return fi
 }

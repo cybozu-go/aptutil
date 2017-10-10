@@ -5,8 +5,10 @@ import (
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -118,33 +120,17 @@ func testFileInfoSame(t *testing.T) {
 	}
 }
 
-func testFileInfoMake(t *testing.T) {
-	t.Parallel()
-
-	path := "/abc/def"
-	data := []byte{'a', 'b', 'c', 'd', 'e', 'f'}
-
-	fi := MakeFileInfo(path, data)
-	if fi.Path() != path {
-		t.Error(`fi.Path() != path`)
-	}
-	if fi.Size() != uint64(len(data)) {
-		t.Error(`fi.Size() != uint64(len(data))`)
-	}
-
-	sha256sum := sha256.Sum256(data)
-	if bytes.Compare(sha256sum[:], fi.sha256sum) != 0 {
-		t.Error(`bytes.Compare(sha256sum[:], fi.sha256sum) != 0`)
-	}
-}
-
 func testFileInfoJSON(t *testing.T) {
 	t.Parallel()
 
-	path := "/abc/def"
-	data := []byte{'a', 'b', 'c', 'd', 'e', 'f'}
+	r := strings.NewReader("hello world")
+	w := new(bytes.Buffer)
+	p := "/abc/def"
 
-	fi := MakeFileInfo(path, data)
+	fi, err := CopyWithFileInfo(w, r, p)
+	if err != nil {
+		t.Fatal(err)
+	}
 	j, err := json.Marshal(fi)
 	if err != nil {
 		t.Fatal(err)
@@ -164,10 +150,15 @@ func testFileInfoJSON(t *testing.T) {
 
 func testFileInfoAddPrefix(t *testing.T) {
 	t.Parallel()
-	path := "/abc/def"
-	data := []byte{'a', 'b', 'c', 'd', 'e', 'f'}
 
-	fi := MakeFileInfo(path, data)
+	r := strings.NewReader("hello world")
+	w := new(bytes.Buffer)
+	p := "/abc/def"
+
+	fi, err := CopyWithFileInfo(w, r, p)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if fi.Path() != "/abc/def" {
 		t.Error(`fi.Path() != "/abc/def"`)
 	}
@@ -181,14 +172,24 @@ func testFileInfoAddPrefix(t *testing.T) {
 func testFileInfoChecksum(t *testing.T) {
 	t.Parallel()
 
-	path := "/abc/def"
-	data := []byte{'a', 'b', 'c', 'd', 'e', 'f'}
-	md5 := "e80b5017098950fc58aad83c8c14978e"
-	s1 := "1f8ac10f23c5b5bc1167bda84b833e5c057a77d2"
-	s256 := "bef57ec7f53a6d40beb640a780a639c83bc29ac8a9816f1fc6c5c6dcd93c4721"
+	text := "hello world"
+	r := strings.NewReader(text)
+	w := new(bytes.Buffer)
+	p := "/abc/def"
 
-	fi := MakeFileInfo(path, data)
-	if fi.MD5SumPath() != "/abc/by-hash/MD5Sum/"+md5 {
+	md5sum := md5.Sum([]byte(text))
+	sha1sum := sha1.Sum([]byte(text))
+	sha256sum := sha256.Sum256([]byte(text))
+	m5 := hex.EncodeToString(md5sum[:])
+	s1 := hex.EncodeToString(sha1sum[:])
+	s256 := hex.EncodeToString(sha256sum[:])
+
+	fi, err := CopyWithFileInfo(w, r, p)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if fi.MD5SumPath() != "/abc/by-hash/MD5Sum/"+m5 {
 		t.Error(`fi.MD5SumPath() != "/abc/by-hash/MD5Sum/" + md5`)
 	}
 	if fi.SHA1Path() != "/abc/by-hash/SHA1/"+s1 {
@@ -199,10 +200,45 @@ func testFileInfoChecksum(t *testing.T) {
 	}
 }
 
+func testFileInfoCopy(t *testing.T) {
+	t.Parallel()
+
+	text := "hello world"
+	r := strings.NewReader(text)
+	w := new(bytes.Buffer)
+	p := "/abc/def"
+
+	md5sum := md5.Sum([]byte(text))
+	sha1sum := sha1.Sum([]byte(text))
+	sha256sum := sha256.Sum256([]byte(text))
+
+	fi := &FileInfo{
+		path:      p,
+		size:      uint64(r.Size()),
+		md5sum:    md5sum[:],
+		sha1sum:   sha1sum[:],
+		sha256sum: sha256sum[:],
+	}
+
+	fi2, err := CopyWithFileInfo(w, r, p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if w.String() != text {
+		t.Errorf(
+			"Copy did not work properly, expected: %s, actual: %s",
+			text, w.String(),
+		)
+	}
+	if !fi.Same(fi2) {
+		t.Error("Generated FileInfo is invalid")
+	}
+}
+
 func TestFileInfo(t *testing.T) {
 	t.Run("Same", testFileInfoSame)
-	t.Run("Make", testFileInfoMake)
 	t.Run("JSON", testFileInfoJSON)
 	t.Run("AddPrefix", testFileInfoAddPrefix)
 	t.Run("Checksum", testFileInfoChecksum)
+	t.Run("Copy", testFileInfoCopy)
 }
