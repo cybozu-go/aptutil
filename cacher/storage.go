@@ -59,10 +59,19 @@ type Storage struct {
 // dir is the directory for cached items.
 // capacity is the maximum total size (bytes) of items in the cache.
 // If capacity is zero, items will not be evicted.
+// Non-existing directories will be created (insufficient permission result in panic)
 func NewStorage(dir string, capacity uint64) *Storage {
 	if !filepath.IsAbs(dir) {
 		panic("dir must be an absolute path")
 	}
+
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		err = os.MkdirAll(dir, 0755)
+		if err != nil {
+			panic("Storage.NewStorage: failed to create " + dir)
+		}
+	}
+
 	return &Storage{
 		dir:      dir,
 		cache:    make(map[string]*entry),
