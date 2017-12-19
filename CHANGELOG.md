@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 ### Changed
+- [mirror] could not find Release/InRelease if suites=["/"] (#25, #26).
 - [cacher] create cache directories automatically (#29).  
   Contributed by @jacksgt.
 
