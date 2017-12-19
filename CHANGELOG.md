@@ -3,6 +3,9 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Changed
+- [cacher] create cache directories automatically (#29).  
+  Contributed by @jacksgt.
 
 ## [1.3.2] - 2017-09-01
 ### Changed
