@@ -333,12 +333,8 @@ func (c *Cacher) download(ctx context.Context, p string, u *url.URL, valid *apt.
 
 	storage := c.items
 	var fil []*apt.FileInfo
-	t := strings.SplitN(path.Clean(p), "/", 2)
-	if len(t) != 2 {
-		panic("path must has a prefix: " + p)
-	}
 
-	if apt.IsMeta(p) {
+	if t := strings.SplitN(path.Clean(p), "/", 2); len(t) == 2 && apt.IsMeta(t[1]) {
 		storage = c.meta
 		fil, _, err = apt.ExtractFileInfo(t[1], bytes.NewReader(body))
 		if err != nil {

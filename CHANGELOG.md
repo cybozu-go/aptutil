@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 - [mirror] could not find Release/InRelease if suites=["/"] (#25, #26).
 - [cacher] create cache directories automatically (#29).  
   Contributed by @jacksgt.
+- [cacher] prevent panic for URL whose path is a mapping prefix (#30).
 
 ## [1.3.2] - 2017-09-01
 ### Changed
