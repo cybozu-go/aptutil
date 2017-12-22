@@ -42,6 +42,10 @@ Usage
 * [go-apt-cacher](cmd/go-apt-cacher/USAGE.md)
 * [go-apt-mirror](cmd/go-apt-mirror/USAGE.md)
 
+Deploy
+------
+
+Both `go-apt-cacher` and `go-apt-mirror` can be deployed via the [jacksgt/aptutil Docker Image](https://hub.docker.com/r/jacksgt/aptutil/). For more information head over to the [source repository](https://github.com/jacksgt/docker-aptutil).
 
 Build
 -----
