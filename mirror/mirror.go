@@ -277,8 +277,10 @@ func closeRespBody(r *http.Response) {
 }
 
 func closeAndRemoveFile(f *os.File) {
-	f.Close()
-	os.Remove(f.Name())
+	if f != nil {
+		f.Close()
+		os.Remove(f.Name())
+	}
 }
 
 // download is a goroutine to download an item.
@@ -351,22 +353,19 @@ RETRY:
 		goto RETRY
 	}
 
+	if r.status != 200 {
+		return
+	}
+
 	tempfile, err := m.storage.TempFile()
 	if err != nil {
 		r.err = err
 		return
 	}
-	r.tempfile = tempfile
-
-	if r.status != 200 {
-		return
-	}
-
 	fi2, err := apt.CopyWithFileInfo(tempfile, resp.Body, p)
 	if err != nil {
 		if retries < httpRetries {
 			retries++
-			closeAndRemoveFile(tempfile)
 			goto RETRY
 		}
 		r.err = err
@@ -375,6 +374,11 @@ RETRY:
 	err = tempfile.Sync()
 	if err != nil {
 		r.err = errors.New("tempfile.Sync failed")
+		return
+	}
+	err = os.Chmod(tempfile.Name(), 0644)
+	if err != nil {
+		r.err = errors.New("os.Chmod(tempfile.Name(), 0644) failed")
 		return
 	}
 
@@ -397,6 +401,7 @@ RETRY:
 		r.err = errors.New("tempfile.Seek failed")
 		return
 	}
+	r.tempfile = tempfile
 	r.fi = fi2
 }
 
@@ -422,6 +427,39 @@ func addFileInfoToList(fi *apt.FileInfo, m map[string][]*apt.FileInfo, byhash bo
 	return nil
 }
 
+func (m *Mirror) handleReleaseResults(results <-chan *dlResult, byhash bool) ([]*apt.FileInfo, bool, error) {
+	r := <-results
+	defer closeAndRemoveFile(r.tempfile)
+	if r.err != nil {
+		return nil, byhash, errors.Wrap(r.err, "download")
+	}
+
+	if 400 <= r.status && r.status < 500 {
+		// return no error to continue
+		return nil, byhash, nil
+	}
+
+	if r.status != http.StatusOK {
+		return nil, byhash, fmt.Errorf("status %d for %s", r.status, r.path)
+	}
+
+	// 200 OK
+	err := m.storage.StoreLink(r.fi, r.tempfile.Name())
+	if err != nil {
+		return nil, byhash, errors.Wrap(err, "storage.Store")
+	}
+	fil, d, err := apt.ExtractFileInfo(r.path, r.tempfile)
+	if err != nil {
+		return nil, byhash, errors.Wrap(err, "ExtractFileInfo: "+r.path)
+	}
+
+	if byhash && path.Base(r.path) != "Release.gpg" {
+		byhash = apt.SupportByHash(d)
+	}
+
+	return fil, byhash, nil
+}
+
 func (m *Mirror) downloadRelease(ctx context.Context, suite string) (map[string][]*apt.FileInfo, bool, error) {
 	releases := m.mc.ReleaseFiles(suite)
 	results := make(chan *dlResult, len(releases))
@@ -439,45 +477,15 @@ func (m *Mirror) downloadRelease(ctx context.Context, suite string) (map[string]
 	byhash := true
 	filMap := make(map[string][]*apt.FileInfo)
 	for i := 0; i < len(releases); i++ {
-		err := func() error {
-			r := <-results
-			defer closeAndRemoveFile(r.tempfile)
-			if r.err != nil {
-				return errors.Wrap(r.err, "download")
-			}
-
-			if 400 <= r.status && r.status < 500 {
-				return nil
-			}
-
-			if r.status != http.StatusOK {
-				return fmt.Errorf("status %d for %s", r.status, r.path)
-			}
-
-			// 200 OK
-			err := m.storage.StoreLink(r.fi, r.tempfile.Name())
-			if err != nil {
-				return errors.Wrap(err, "storage.Store")
-			}
-			fil, d, err := apt.ExtractFileInfo(r.path, r.tempfile)
-			if err != nil {
-				return errors.Wrap(err, "ExtractFileInfo: "+r.path)
-			}
-
-			if byhash && path.Base(r.path) != "Release.gpg" {
-				byhash = apt.SupportByHash(d)
-			}
-
-			for _, fi := range fil {
-				err = addFileInfoToList(fi, filMap, byhash)
-				if err != nil {
-					return err
-				}
-			}
-			return nil
-		}()
+		fil, byhash, err := m.handleReleaseResults(results, byhash)
 		if err != nil {
 			return nil, byhash, err
+		}
+		for _, fi := range fil {
+			err = addFileInfoToList(fi, filMap, byhash)
+			if err != nil {
+				return nil, byhash, err
+			}
 		}
 	}
 
@@ -605,39 +613,44 @@ func (m *Mirror) reuseOrDownload(ctx context.Context, fil []*apt.FileInfo,
 	return reused, nil
 }
 
+func (m *Mirror) handleResult(r *dlResult, allowMissing, byhash bool) (*apt.FileInfo, error) {
+	defer closeAndRemoveFile(r.tempfile)
+
+	if r.err != nil {
+		return nil, errors.Wrap(r.err, "download")
+	}
+
+	if allowMissing && r.status == http.StatusNotFound {
+		log.Warn("missing file", map[string]interface{}{
+			"repo": m.id,
+			"path": r.path,
+		})
+		// return no error to continue
+		return nil, nil
+	}
+
+	if r.status != http.StatusOK {
+		return nil, fmt.Errorf("status %d for %s", r.status, r.path)
+	}
+
+	err := m.storeLink(r.fi, r.tempfile.Name(), byhash)
+	if err != nil {
+		return nil, errors.Wrap(err, "store")
+	}
+
+	return r.fi, nil
+}
+
 func (m *Mirror) recvResult(allowMissing, byhash bool, results <-chan *dlResult) ([]*apt.FileInfo, error) {
 	var dlfil []*apt.FileInfo
 
 	for r := range results {
-		err := func() error {
-			defer closeAndRemoveFile(r.tempfile)
-
-			if r.err != nil {
-				return errors.Wrap(r.err, "download")
-			}
-
-			if allowMissing && r.status == http.StatusNotFound {
-				log.Warn("missing file", map[string]interface{}{
-					"repo": m.id,
-					"path": r.path,
-				})
-				return nil
-			}
-
-			if r.status != http.StatusOK {
-				return fmt.Errorf("status %d for %s", r.status, r.path)
-			}
-
-			err := m.storeLink(r.fi, r.tempfile.Name(), byhash)
-			if err != nil {
-				return errors.Wrap(err, "store")
-			}
-
-			dlfil = append(dlfil, r.fi)
-			return nil
-		}()
+		fi, err := m.handleResult(r, allowMissing, byhash)
 		if err != nil {
 			return nil, err
+		}
+		if fi != nil {
+			dlfil = append(dlfil, fi)
 		}
 	}
 
