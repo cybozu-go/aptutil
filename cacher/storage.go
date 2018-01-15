@@ -195,11 +195,19 @@ func (cm *Storage) Load() error {
 	return nil
 }
 
+// TempFile creates a new temporary file
+// in the directory specified in Storage,
+// opens the file for reading and writing,
+// and returns the resulting *os.File.
+func (cm *Storage) TempFile() (*os.File, error) {
+	return ioutil.TempFile(cm.dir, "_tmp")
+}
+
 // Insert inserts or updates a cache item.
 //
 // fi.Path() must be as clean as filepath.Clean() and
 // must not be filepath.IsAbs().
-func (cm *Storage) Insert(data []byte, fi *apt.FileInfo) error {
+func (cm *Storage) Insert(filename string, fi *apt.FileInfo) error {
 	p := fi.Path()
 	switch {
 	case p != filepath.Clean(p):
@@ -210,28 +218,10 @@ func (cm *Storage) Insert(data []byte, fi *apt.FileInfo) error {
 		return ErrBadPath
 	}
 
-	f, err := ioutil.TempFile(cm.dir, "_tmp")
-	if err != nil {
-		return err
-	}
-	defer func() {
-		f.Close()
-		os.Remove(f.Name())
-	}()
-
-	_, err = f.Write(data)
-	if err != nil {
-		return err
-	}
-	err = f.Sync()
-	if err != nil {
-		return err
-	}
-
 	destpath := filepath.Join(cm.dir, p+fileSuffix)
 	dirpath := filepath.Dir(destpath)
 
-	_, err = os.Stat(dirpath)
+	_, err := os.Stat(dirpath)
 	switch {
 	case os.IsNotExist(err):
 		err = os.MkdirAll(dirpath, 0755)
@@ -265,7 +255,7 @@ func (cm *Storage) Insert(data []byte, fi *apt.FileInfo) error {
 		}
 	}
 
-	err = os.Rename(f.Name(), destpath)
+	err = os.Link(filename, destpath)
 	if err != nil {
 		return err
 	}
