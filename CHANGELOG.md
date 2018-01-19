@@ -3,6 +3,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+
+## [1.4.0rc1] - 2018-01-19
 ### Changed
 - Do not consume too much memory when downloading large files (#14, #28).
 - [mirror] could not find Release/InRelease if suites=["/"] (#25, #26).
@@ -61,7 +63,8 @@ All notable changes to this project will be documented in this file.
 
 [cmd]: https://github.com/cybozu-go/cmd
 [spec]: https://github.com/cybozu-go/cmd/blob/master/README.md#specifications
-[Unreleased]: https://github.com/cybozu-go/aptutil/compare/v1.3.2...HEAD
+[Unreleased]: https://github.com/cybozu-go/aptutil/compare/v1.4.0rc1...HEAD
+[1.4.0rc1]: https://github.com/cybozu-go/aptutil/compare/v1.3.2...v1.4.0rc1
 [1.3.2]: https://github.com/cybozu-go/aptutil/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/cybozu-go/aptutil/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/cybozu-go/aptutil/compare/v1.2.2...v1.3.0
