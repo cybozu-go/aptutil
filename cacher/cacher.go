@@ -109,18 +109,24 @@ func NewCacher(config *Config) (*Cacher, error) {
 		}
 	}
 
+	transport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+	}
+
 	c := &Cacher{
 		meta:          meta,
 		items:         cache,
 		um:            um,
 		checkInterval: checkInterval,
 		cachePeriod:   cachePeriod,
-		client:        &http.Client{},
-		maxConns:      config.MaxConns,
-		info:          make(map[string]*apt.FileInfo),
-		dlChannels:    make(map[string]chan struct{}),
-		results:       make(map[string]int),
-		hostSem:       make(map[string]chan struct{}),
+		client: &http.Client{
+			Transport: transport,
+		},
+		maxConns:   config.MaxConns,
+		info:       make(map[string]*apt.FileInfo),
+		dlChannels: make(map[string]chan struct{}),
+		results:    make(map[string]int),
+		hostSem:    make(map[string]chan struct{}),
 	}
 
 	metas := meta.ListAll()
