@@ -1,12 +1,27 @@
+defaults: &defaults
+  working_directory: /go/src/github.com/cybozu-go/aptutil
+  steps:
+    - checkout
+    - run: git branch --set-upstream-to=origin/$CIRCLE_BRANCH $CIRCLE_BRANCH
+    - run: make bootstrap
+    - run: make test
+    - run: make archive
+
 version: 2
 jobs:
-  build:
+  stable:
+    <<: *defaults
     docker:
       - image: circleci/golang:1-stretch
-    working_directory: /go/src/github.com/cybozu-go/aptutil
-    steps:
-      - checkout
-      - run: git branch --set-upstream-to=origin/$CIRCLE_BRANCH $CIRCLE_BRANCH
-      - run: make bootstrap
-      - run: make test
-      - run: make archive
+
+  master:
+    <<: *defaults
+    docker:
+      - image: circleci/golang:rc-stretch
+
+workflows:
+  version: 2
+  builds:
+    jobs:
+      - stable
+      - master
