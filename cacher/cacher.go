@@ -65,12 +65,12 @@ func NewCacher(config *Config) (*Cacher, error) {
 	checkInterval := time.Duration(config.CheckInterval) * time.Second
 	cachePeriod := time.Duration(config.CachePeriod) * time.Second
 
-	metaDir := filepath.Clean(config.MetaDirectory)
+	metaDir := filepath.Clean(os.ExpandEnv(config.MetaDirectory))
 	if !filepath.IsAbs(metaDir) {
 		return nil, errors.New("meta_dir must be an absolute path")
 	}
 
-	cacheDir := filepath.Clean(config.CacheDirectory)
+	cacheDir := filepath.Clean(os.ExpandEnv(config.CacheDirectory))
 	if !filepath.IsAbs(cacheDir) {
 		return nil, errors.New("cache_dir must be an absolute path")
 	}
