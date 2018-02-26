@@ -9,7 +9,7 @@ SUFFIX     := $(GOOS)_$(GOARCH)
 TRAVIS_TAG ?= $(shell git rev-parse --short HEAD)
 
 CMD        := $(notdir $(wildcard cmd/*))
-ARCHVIE    := $(addsuffix _$(TRAVIS_TAG)_$(SUFFIX).tgz,$(CMD))
+ARCHIVE    := $(addsuffix _$(TRAVIS_TAG)_$(SUFFIX).tgz,$(CMD))
 
 GO_PKGS    := \
 	github.com/golang/lint/golint \
@@ -24,7 +24,7 @@ test:
 	go vet -x ./...
 	${GOPATH}/bin/golint -set_exit_status ./...
 
-archive: $(ARCHVIE)
+archive: $(ARCHIVE)
 
 bin: $(patsubst %,pkg/%_$(SUFFIX),$(CMD))
 
