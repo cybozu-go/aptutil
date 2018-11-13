@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/cybozu-go/well"
 	"github.com/cybozu-go/log"
+	"github.com/cybozu-go/well"
 	"github.com/pkg/errors"
 )
 

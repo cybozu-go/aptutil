@@ -7,8 +7,8 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/cybozu-go/aptutil/cacher"
-	"github.com/cybozu-go/well"
 	"github.com/cybozu-go/log"
+	"github.com/cybozu-go/well"
 )
 
 const (
