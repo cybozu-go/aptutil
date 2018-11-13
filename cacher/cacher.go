@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/cybozu-go/aptutil/apt"
-	"github.com/cybozu-go/cmd"
+	"github.com/cybozu-go/well"
 	"github.com/cybozu-go/log"
 	"github.com/pkg/errors"
 )
@@ -188,12 +188,12 @@ func (c *Cacher) releaseSemaphore(host string) {
 func (c *Cacher) maintMeta(p string) {
 	switch path.Base(p) {
 	case "Release":
-		cmd.Go(func(ctx context.Context) error {
+		well.Go(func(ctx context.Context) error {
 			c.maintRelease(ctx, p, true)
 			return nil
 		})
 	case "InRelease":
-		cmd.Go(func(ctx context.Context) error {
+		well.Go(func(ctx context.Context) error {
 			c.maintRelease(ctx, p, false)
 			return nil
 		})
@@ -257,7 +257,7 @@ func (c *Cacher) Download(p string, valid *apt.FileInfo) <-chan struct{} {
 
 	ch = make(chan struct{})
 	c.dlChannels[p] = ch
-	cmd.Go(func(ctx context.Context) error {
+	well.Go(func(ctx context.Context) error {
 		c.download(ctx, p, u, valid)
 		return nil
 	})
@@ -280,7 +280,7 @@ func (c *Cacher) download(ctx context.Context, p string, u *url.URL, valid *apt.
 		close(ch)
 
 		// invalidate result cache after some interval
-		cmd.Go(func(ctx context.Context) error {
+		well.Go(func(ctx context.Context) error {
 			select {
 			case <-ctx.Done():
 				return nil

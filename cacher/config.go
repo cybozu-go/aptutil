@@ -1,6 +1,6 @@
 package cacher
 
-import "github.com/cybozu-go/cmd"
+import "github.com/cybozu-go/well"
 
 const (
 	defaultAddress       = ":3142"
@@ -57,8 +57,8 @@ type Config struct {
 	// Zero disables limit on the number of connections.
 	MaxConns int `toml:"max_conns"`
 
-	// Log is cmd.LogConfig
-	Log cmd.LogConfig `toml:"log"`
+	// Log is well.LogConfig
+	Log well.LogConfig `toml:"log"`
 
 	// Mapping specifies mapping between prefixes and APT URLs.
 	Mapping map[string]string `toml:"mapping"`

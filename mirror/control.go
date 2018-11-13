@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/cybozu-go/cmd"
+	"github.com/cybozu-go/well"
 	"github.com/cybozu-go/log"
 	"github.com/pkg/errors"
 )
@@ -31,7 +31,7 @@ func updateMirrors(ctx context.Context, c *Config, mirrors []string) error {
 	log.Info("update starts", nil)
 
 	// run goroutines in an environment.
-	env := cmd.NewEnvironment(ctx)
+	env := well.NewEnvironment(ctx)
 
 	for _, m := range ml {
 		env.Go(m.Update)
@@ -136,13 +136,13 @@ func Run(c *Config, mirrors []string) error {
 		}
 	}
 
-	cmd.Go(func(ctx context.Context) error {
+	well.Go(func(ctx context.Context) error {
 		err := updateMirrors(ctx, c, mirrors)
 		if err != nil {
 			return err
 		}
 		return gc(ctx, c)
 	})
-	cmd.Stop()
-	return cmd.Wait()
+	well.Stop()
+	return well.Wait()
 }
