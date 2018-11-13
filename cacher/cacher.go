@@ -17,8 +17,8 @@ import (
 	"time"
 
 	"github.com/cybozu-go/aptutil/apt"
-	"github.com/cybozu-go/well"
 	"github.com/cybozu-go/log"
+	"github.com/cybozu-go/well"
 	"github.com/pkg/errors"
 )
 
