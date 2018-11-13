@@ -8,7 +8,7 @@ dir = "/var/spool/go-apt-mirror"
 max_conns = 10
 
 # log specifies logging configurations.
-# Details at https://godoc.org/github.com/cybozu-go/cmd#LogConfig
+# Details at https://godoc.org/github.com/cybozu-go/well#LogConfig
 [log]
 level = "info"
 format = "plain"

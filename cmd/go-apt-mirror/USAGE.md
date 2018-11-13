@@ -35,7 +35,7 @@ Options
 | ------ | ------- | ----------- |
 | `-f`   | `/etc/apt/mirror.toml` | Configurations |
 
-As `go-apt-cacher` uses [github.com/cybozu-go/cmd](https://github.com/cybozu-go/cmd), flags provided by `cmd` is also available.
+As `go-apt-cacher` uses [github.com/cybozu-go/well](https://github.com/cybozu-go/well), flags provided by `well` is also available.
 
 
 [TOML]: https://github.com/toml-lang/toml

@@ -29,7 +29,7 @@ cache_capacity = 1
 max_conns = 10
 
 # log specifies logging configurations.
-# Details at https://godoc.org/github.com/cybozu-go/cmd#LogConfig
+# Details at https://godoc.org/github.com/cybozu-go/well#LogConfig
 [log]
 #filename = "/var/log/go-apt-cacher.log"
 level = "info"

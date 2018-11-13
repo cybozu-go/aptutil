@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/cybozu-go/aptutil/apt"
-	"github.com/cybozu-go/cmd"
+	"github.com/cybozu-go/well"
 	"github.com/cybozu-go/log"
 	"github.com/pkg/errors"
 )
@@ -530,7 +530,7 @@ func (m *Mirror) downloadFiles(ctx context.Context,
 	results := make(chan *dlResult, len(fil))
 	var reused, downloaded []*apt.FileInfo
 
-	env := cmd.NewEnvironment(ctx)
+	env := well.NewEnvironment(ctx)
 	env.Go(func(ctx context.Context) error {
 		var err error
 		reused, err = m.reuseOrDownload(ctx, fil, byhash, results)
@@ -562,7 +562,7 @@ func (m *Mirror) reuseOrDownload(ctx context.Context, fil []*apt.FileInfo,
 	byhash bool, results chan<- *dlResult) ([]*apt.FileInfo, error) {
 
 	// environment to manage downloading goroutines.
-	env := cmd.NewEnvironment(ctx)
+	env := well.NewEnvironment(ctx)
 
 	// on return, wait for all DL goroutines then signal recvResult
 	// by closing results channel.

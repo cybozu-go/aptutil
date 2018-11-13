@@ -6,7 +6,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/cybozu-go/cmd"
+	"github.com/cybozu-go/well"
 )
 
 const (
@@ -165,7 +165,7 @@ func (mc *MirrConfig) MatchingIndex(p string) bool {
 type Config struct {
 	Dir      string                 `toml:"dir"`
 	MaxConns int                    `toml:"max_conns"`
-	Log      cmd.LogConfig          `toml:"log"`
+	Log      well.LogConfig         `toml:"log"`
 	Mirrors  map[string]*MirrConfig `toml:"mirror"`
 }
 

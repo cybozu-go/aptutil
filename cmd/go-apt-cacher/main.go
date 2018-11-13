@@ -7,7 +7,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/cybozu-go/aptutil/cacher"
-	"github.com/cybozu-go/cmd"
+	"github.com/cybozu-go/well"
 	"github.com/cybozu-go/log"
 )
 
@@ -49,8 +49,8 @@ func main() {
 		log.ErrorExit(err)
 	}
 
-	err = cmd.Wait()
-	if err != nil && !cmd.IsSignaled(err) {
+	err = well.Wait()
+	if err != nil && !well.IsSignaled(err) {
 		log.ErrorExit(err)
 	}
 }
