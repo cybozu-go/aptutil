@@ -66,9 +66,9 @@ func testStorageLookup(t *testing.T) {
 	}
 
 	files := map[string][]byte{
-		"a/b/c":   []byte{'a', 'b', 'c'},
-		"def":     []byte{'d', 'e', 'f'},
-		"a/pp/le": []byte{'a', 'p', 'p', 'l', 'e'},
+		"a/b/c":   {'a', 'b', 'c'},
+		"def":     {'d', 'e', 'f'},
+		"a/pp/le": {'a', 'p', 'p', 'l', 'e'},
 	}
 
 	for fn, data := range files {
