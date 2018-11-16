@@ -2,7 +2,6 @@
 [![GoDoc](https://godoc.org/github.com/cybozu-go/aptutil?status.svg)][godoc]
 [![CircleCI](https://circleci.com/gh/cybozu-go/aptutil.svg?style=svg)](https://circleci.com/gh/cybozu-go/aptutil)
 [![Go Report Card](https://goreportcard.com/badge/github.com/cybozu-go/aptutil)](https://goreportcard.com/report/github.com/cybozu-go/aptutil)
-[![License](https://img.shields.io/github/license/cybozu-go/aptutil.svg?maxAge=2592000)](LICENSE)
 
 **go-apt-cacher** is a caching reverse proxy built specially for Debian (APT) repositories.  
 This repository also contains a mirroring utility **go-apt-mirror**.

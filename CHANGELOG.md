@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.4.1] - 2018-11-16
+### Changed
+- Handle renaming of cybozu-go/cmd to [cybozu-go/well][well]
+- Introduce support for Go modules
+
 ## [1.4.0] - 2018-03-02
 ### Changed
 - No notable changes since RC1.
@@ -65,9 +70,11 @@ All notable changes to this project will be documented in this file.
   This works as a workaround for some badly configured web servers.
 
 
+[well]: https://github.com/cybozu-go/well
 [cmd]: https://github.com/cybozu-go/cmd
 [spec]: https://github.com/cybozu-go/cmd/blob/master/README.md#specifications
-[Unreleased]: https://github.com/cybozu-go/aptutil/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/cybozu-go/aptutil/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/cybozu-go/aptutil/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/cybozu-go/aptutil/compare/v1.4.0rc1...v1.4.0
 [1.4.0rc1]: https://github.com/cybozu-go/aptutil/compare/v1.3.2...v1.4.0rc1
 [1.3.2]: https://github.com/cybozu-go/aptutil/compare/v1.3.1...v1.3.2
