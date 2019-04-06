@@ -21,6 +21,7 @@ import (
 const (
 	timestampFormat  = "20060102_150405"
 	progressInterval = 5 * time.Minute
+	requestTimeout   = 30 * time.Minute
 	httpRetries      = 5
 )
 
@@ -325,6 +326,9 @@ RETRY:
 		})
 		time.Sleep(time.Duration(1<<(retries-1)) * time.Second)
 	}
+
+	ctx, cancel := context.WithTimeout(ctx, requestTimeout)
+	defer cancel()
 
 	req := &http.Request{
 		Method:     "GET",
