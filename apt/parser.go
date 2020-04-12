@@ -17,6 +17,11 @@ import (
 	"strings"
 )
 
+const (
+	maxScanTokenSize = 1 * 1024 * 1024 // 1 MiB
+	startBufSize     = 4096            // Default buffer allocation size in bufio
+)
+
 // Paragraph is a mapping between field names and values.
 //
 // Values are a list of strings.  For simple fields, the list has only
@@ -36,10 +41,13 @@ type Parser struct {
 
 // NewParser creates a parser from a io.Reader.
 func NewParser(r io.Reader) *Parser {
-	return &Parser{
+	p := &Parser{
 		s:     bufio.NewScanner(r),
 		isPGP: false,
 	}
+	b := make([]byte, startBufSize)
+	p.s.Buffer(b, maxScanTokenSize)
+	return p
 }
 
 // Read reads a paragraph.
