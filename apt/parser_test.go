@@ -169,6 +169,11 @@ func TestParserPackages(t *testing.T) {
 	}
 
 	_, err = p.Read()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = p.Read()
 	if err != io.EOF {
 		t.Error(`err != io.EOF`)
 	}
