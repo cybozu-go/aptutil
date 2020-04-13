@@ -135,8 +135,8 @@ func TestGetFilesFromPackages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(fil) != 2 {
-		t.Error(`len(fil) != 2`)
+	if len(fil) != 3 {
+		t.Error(`len(fil) != 3`)
 	}
 
 	sha1sum, _ := hex.DecodeString("903b3305c86e872db25985f2b686ef8d1c3760cf")
