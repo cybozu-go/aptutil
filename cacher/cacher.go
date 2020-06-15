@@ -363,7 +363,7 @@ func (c *Cacher) download(ctx context.Context, p string, u *url.URL, valid *apt.
 	var fil []*apt.FileInfo
 
 	if t := strings.SplitN(path.Clean(p), "/", 2); len(t) == 2 && apt.IsMeta(t[1]) {
-		_, err = tempfile.Seek(0, os.SEEK_SET)
+		_, err = tempfile.Seek(0, io.SeekStart)
 		if err != nil {
 			log.Error("failed to reset tempfile offset", map[string]interface{}{
 				"error": err.Error(),

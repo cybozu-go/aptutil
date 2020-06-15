@@ -402,7 +402,7 @@ RETRY:
 		return
 	}
 
-	_, err = tempfile.Seek(0, os.SEEK_SET)
+	_, err = tempfile.Seek(0, io.SeekStart)
 	if err != nil {
 		r.err = errors.New("tempfile.Seek failed")
 		return
