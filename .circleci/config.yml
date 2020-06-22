@@ -1,19 +1,34 @@
-version: 2
-jobs:
-  build:
+version: 2.1
+executors:
+  go13:
     docker:
-    - image: quay.io/cybozu/golang:1.11-bionic
-    working_directory: /work
+      - image: quay.io/cybozu/golang:1.13-bionic
+jobs:
+  lint:
+    executor: go13
     steps:
-    - checkout
-    - run: test -z "$(gofmt -s -l . | grep -v '^vendor' | tee /dev/stderr)"
-    - run: golint -set_exit_status .
-    - run: go build ./...
-    - run: go test -race -v ./...
-    - run: go vet ./...
+      - checkout
+      - run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.27.0
+          golangci-lint run --new-from-rev=HEAD~
+      - run: test -z "$(gofmt -s -l . | grep -v '^vendor' | tee /dev/stderr)"
+      - run: golint -set_exit_status .
+  test:
+    executor: go13
+    steps:
+      - checkout
+      - run: go test -race -v ./...
+      - run: go vet ./...
+  build:
+    executor: go13
+    steps:
+      - checkout
+      - run: go build ./...
 
 workflows:
   version: 2
   main:
     jobs:
+      - lint
+      - test
       - build

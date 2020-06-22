@@ -49,7 +49,7 @@ Both `go-apt-cacher` and `go-apt-mirror` can be deployed via the [jacksgt/aptuti
 Build
 -----
 
-Use Go 1.7 or better.
+Use Go 1.13 or above.
 
 Run the command below exactly as shown, including the ellipsis.
 They are significant - see `go help packages`.
