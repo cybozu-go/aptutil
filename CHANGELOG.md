@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.4.2] - 2020-12-23
+### Changed
+- Minor fixes
+- Upgrade CI to go1.15
+
 ## [1.4.1] - 2018-11-16
 ### Changed
 - Handle renaming of cybozu-go/cmd to [cybozu-go/well][well]
@@ -73,7 +78,8 @@ All notable changes to this project will be documented in this file.
 [well]: https://github.com/cybozu-go/well
 [cmd]: https://github.com/cybozu-go/cmd
 [spec]: https://github.com/cybozu-go/cmd/blob/master/README.md#specifications
-[Unreleased]: https://github.com/cybozu-go/aptutil/compare/v1.4.1...HEAD
+[Unreleased]: https://github.com/cybozu-go/aptutil/compare/v1.4.2...HEAD
+[1.4.2]: https://github.com/cybozu-go/aptutil/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/cybozu-go/aptutil/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/cybozu-go/aptutil/compare/v1.4.0rc1...v1.4.0
 [1.4.0rc1]: https://github.com/cybozu-go/aptutil/compare/v1.3.2...v1.4.0rc1
