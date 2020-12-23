@@ -8,6 +8,10 @@ This repository also contains a mirroring utility **go-apt-mirror**.
 
 Blog: [Introducing go-apt-cacher and go-apt-mirror](http://ymmt2005.hatenablog.com/entry/2016/07/19/Introducing_go-apt-cacher_and_go-apt-mirror)
 
+Status
+--------
+This project is currently in maintenance mode and is not expected to receive feature updates. Bugfixes and such will still be performed if needed.
+
 Features
 --------
 
