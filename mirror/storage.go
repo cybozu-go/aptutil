@@ -104,7 +104,10 @@ func (s *Storage) Save() error {
 	}
 
 	f.Sync()
-	DirSyncTree(s.dir)
+	err = DirSyncTree(s.dir)
+	if err != nil {
+		return errors.Wrap(err, "DirSyncTree(s.dir)")
+	}
 
 	return nil
 }
