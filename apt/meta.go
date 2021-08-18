@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/ulikunitz/xz"
 )
 
 // IsMeta returns true if p points a debian repository index file
@@ -47,7 +48,7 @@ func IsMeta(p string) bool {
 // decompressed by ExtractFileInfo.
 func IsSupported(p string) bool {
 	switch path.Ext(p) {
-	case "", ".gz", ".bz2", ".gpg":
+	case "", ".gz", ".bz2", ".gpg", ".xz":
 		return true
 	}
 	return false
@@ -344,6 +345,13 @@ func ExtractFileInfo(p string, r io.Reader) ([]*FileInfo, Paragraph, error) {
 	case ".bz2":
 		r = bzip2.NewReader(r)
 		base = base[:len(base)-4]
+	case ".xz":
+		xzr, err := xz.NewReader(r)
+		if err != nil {
+			return nil, nil, err
+		}
+		r = xzr
+		base = base[:len(base)-3]
 	default:
 		return nil, nil, errors.New("unsupported file extension: " + ext)
 	}

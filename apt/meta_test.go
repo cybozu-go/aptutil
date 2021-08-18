@@ -293,3 +293,28 @@ func TestExtractFileInfo(t *testing.T) {
 		t.Error(`len(fil) != 0`)
 	}
 }
+
+func TestExtractFileInfoWithXZ(t *testing.T) {
+	t.Parallel()
+
+	f, err := os.Open("testdata/af/Packages.xz")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	fil, _, err := ExtractFileInfo("ubuntu/dists/testing/Packages.xz", f)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sha1sum, _ := hex.DecodeString("903b3305c86e872db25985f2b686ef8d1c3760cf")
+	fi := &FileInfo{
+		path:    "pool/c/cybozu-abc_0.2.2-1_amd64.deb",
+		size:    102369852,
+		sha1sum: sha1sum,
+	}
+	if !containsFileInfo(fi, fil) {
+		t.Error("pool/c/cybozu-abc_0.2.2-1_amd64.deb")
+	}
+}
