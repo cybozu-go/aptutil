@@ -74,6 +74,7 @@ Authors & Contributors
 * Yutani, Hiroaki [@yutannihilation](https://github.com/yutannihilation)
 * [@xipmix](https://github.com/xipmix)
 * [@jacksgt](https://github.com/jacksgt)
+* [@arnarg](https://github.com/arnarg)
 
 [releases]: https://github.com/cybozu-go/aptutil/releases
 [godoc]: https://godoc.org/github.com/cybozu-go/aptutil
