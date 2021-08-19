@@ -5,6 +5,7 @@ require (
 	github.com/cybozu-go/log v1.5.0
 	github.com/cybozu-go/well v1.10.0
 	github.com/pkg/errors v0.8.0
+	github.com/ulikunitz/xz v0.5.10
 )
 
 go 1.15
