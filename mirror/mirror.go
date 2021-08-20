@@ -26,6 +26,10 @@ const (
 
 var (
 	validID = regexp.MustCompile(`^[a-z0-9_-]+$`)
+	client  = &http.Client{
+		Timeout:   60 * time.Minute,
+		Transport: http.DefaultTransport,
+	}
 )
 
 // Mirror implements mirroring logics.
@@ -88,10 +92,7 @@ func NewMirror(t time.Time, id string, c *Config) (*Mirror, error) {
 		sem <- struct{}{}
 	}
 
-	transport := &http.Transport{
-		Proxy:               http.ProxyFromEnvironment,
-		MaxIdleConnsPerHost: c.MaxConns,
-	}
+	client.Transport.(*http.Transport).MaxIdleConnsPerHost = c.MaxConns
 
 	mr := &Mirror{
 		id:        id,
@@ -100,9 +101,7 @@ func NewMirror(t time.Time, id string, c *Config) (*Mirror, error) {
 		storage:   storage,
 		current:   currentStorage,
 		semaphore: sem,
-		client: &http.Client{
-			Transport: transport,
-		},
+		client:    client,
 	}
 	return mr, nil
 }
