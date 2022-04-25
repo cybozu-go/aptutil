@@ -67,12 +67,12 @@ func testStorageInsertOverwrite(t *testing.T) {
 	defer os.RemoveAll(dir)
 	cm := NewStorage(dir, 0)
 
-	fi, err := insert(cm, []byte("a"), "path/to/a")
+	_, err = insert(cm, []byte("a"), "path/to/a")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	fi, err = insert(cm, []byte("a"), "path/to/a")
+	fi, err := insert(cm, []byte("a"), "path/to/a")
 	if err != nil {
 		t.Fatal(err)
 	}

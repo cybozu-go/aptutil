@@ -207,7 +207,7 @@ func testStorageStore(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fi, err = apt.CopyWithFileInfo(tempfile, strings.NewReader("def"), "a/b/c")
+	fi, _ = apt.CopyWithFileInfo(tempfile, strings.NewReader("def"), "a/b/c")
 	tempfile.Close()
 	err = s.StoreLinkWithHash(fi, tempfile.Name())
 	os.Remove(tempfile.Name())
