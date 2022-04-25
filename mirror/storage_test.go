@@ -2,7 +2,6 @@ package mirror
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -23,7 +22,7 @@ func makeFileInfo(path string, data []byte) (*apt.FileInfo, error) {
 func testStorageBadConstruction(t *testing.T) {
 	t.Parallel()
 
-	f, err := ioutil.TempFile("", "gotest")
+	f, err := os.CreateTemp("", "gotest")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +48,7 @@ func testStorageBadConstruction(t *testing.T) {
 func testStorageLookup(t *testing.T) {
 	t.Parallel()
 
-	d, err := ioutil.TempDir("", "gotest")
+	d, err := os.MkdirTemp("", "gotest")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -162,7 +161,7 @@ func testStorageLookup(t *testing.T) {
 func testStorageStore(t *testing.T) {
 	t.Parallel()
 
-	d, err := ioutil.TempDir("", "gotest")
+	d, err := os.MkdirTemp("", "gotest")
 	if err != nil {
 		t.Fatal(err)
 	}

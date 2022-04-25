@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
@@ -272,7 +271,7 @@ type dlResult struct {
 }
 
 func closeRespBody(r *http.Response) {
-	_, _ = io.Copy(ioutil.Discard, r.Body)
+	_, _ = io.Copy(io.Discard, r.Body)
 	r.Body.Close()
 }
 

@@ -6,7 +6,6 @@ package cacher
 import (
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -226,7 +225,7 @@ func (c *Cacher) maintRelease(ctx context.Context, p string, withGPG bool) {
 }
 
 func closeRespBody(r *http.Response) {
-	_, _ = io.Copy(ioutil.Discard, r.Body)
+	_, _ = io.Copy(io.Discard, r.Body)
 	r.Body.Close()
 }
 

@@ -2,7 +2,6 @@ package mirror
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -58,14 +57,14 @@ func gc(ctx context.Context, c *Config) error {
 		"..":         true,
 	}
 
-	dentries, err := ioutil.ReadDir(c.Dir)
+	dentries, err := os.ReadDir(c.Dir)
 	if err != nil {
 		return err
 	}
 
 	// search symlinks and its pointing directories
 	for _, dentry := range dentries {
-		if (dentry.Mode() & os.ModeSymlink) == 0 {
+		if (dentry.Type() & os.ModeSymlink) == 0 {
 			continue
 		}
 		p, err := filepath.EvalSymlinks(filepath.Join(c.Dir, dentry.Name()))

@@ -2,7 +2,7 @@ package cacher
 
 import (
 	"container/heap"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"sync"
@@ -141,7 +141,7 @@ func readData(path string) ([]byte, error) {
 	}
 	defer f.Close()
 
-	return ioutil.ReadAll(f)
+	return io.ReadAll(f)
 }
 
 // Load loads existing items in filesystem.
@@ -200,7 +200,7 @@ func (cm *Storage) Load() error {
 // opens the file for reading and writing,
 // and returns the resulting *os.File.
 func (cm *Storage) TempFile() (*os.File, error) {
-	return ioutil.TempFile(cm.dir, "_tmp")
+	return os.CreateTemp(cm.dir, "_tmp")
 }
 
 // Insert inserts or updates a cache item.
