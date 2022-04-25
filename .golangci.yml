@@ -1,8 +1,14 @@
 linters:
     enable:
         - dupl
+        - forbidigo
         - goconst
         - gofmt
-        - golint
+        - revive
         - typecheck
         - unparam
+linters-settings:
+    forbidigo:
+        forbid:
+        # https://go.dev/doc/go1.16#ioutil
+        - ^ioutil\..*
