@@ -33,13 +33,13 @@ func (fi *FileInfo) Same(t *FileInfo) bool {
 	if fi.size != t.size {
 		return false
 	}
-	if fi.md5sum != nil && bytes.Compare(fi.md5sum, t.md5sum) != 0 {
+	if fi.md5sum != nil && !bytes.Equal(fi.md5sum, t.md5sum) {
 		return false
 	}
-	if fi.sha1sum != nil && bytes.Compare(fi.sha1sum, t.sha1sum) != 0 {
+	if fi.sha1sum != nil && !bytes.Equal(fi.sha1sum, t.sha1sum) {
 		return false
 	}
-	if fi.sha256sum != nil && bytes.Compare(fi.sha256sum, t.sha256sum) != 0 {
+	if fi.sha256sum != nil && !bytes.Equal(fi.sha256sum, t.sha256sum) {
 		return false
 	}
 	return true

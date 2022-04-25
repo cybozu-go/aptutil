@@ -289,7 +289,7 @@ func TestStorageLoad(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if bytes.Compare(files["ghij"], data) != 0 {
-		t.Error(`bytes.Compare(files["ghij"], data) != 0`)
+	if !bytes.Equal(files["ghij"], data) {
+		t.Error(`!bytes.Equal(files["ghij"], data)`)
 	}
 }
