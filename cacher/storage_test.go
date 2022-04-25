@@ -240,7 +240,7 @@ func TestStorageLoad(t *testing.T) {
 	}
 
 	cm := NewStorage(dir, 0)
-	cm.Load()
+	_ = cm.Load()
 
 	l := cm.ListAll()
 	if len(l) != len(files) {

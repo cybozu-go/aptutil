@@ -110,7 +110,7 @@ func testStorageLookup(t *testing.T) {
 		t.Error(`fi3 == nil`)
 	}
 
-	s.Save()
+	_ = s.Save()
 
 	s2, err := NewStorage(d, "ubuntu")
 	if err != nil {

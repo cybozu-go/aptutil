@@ -12,3 +12,5 @@ linters-settings:
         forbid:
         # https://go.dev/doc/go1.16#ioutil
         - ^ioutil\..*
+    goconst:
+        ignore-tests: true

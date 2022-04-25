@@ -28,7 +28,7 @@ func updateMirrors(ctx context.Context, c *Config, mirrors []string) error {
 		ml = append(ml, m)
 	}
 
-	log.Info("update starts", nil)
+	_ = log.Info("update starts", nil)
 
 	// run goroutines in an environment.
 	env := well.NewEnvironment(ctx)
@@ -40,13 +40,13 @@ func updateMirrors(ctx context.Context, c *Config, mirrors []string) error {
 	err := env.Wait()
 
 	if err != nil {
-		log.Error("update failed", map[string]interface{}{
+		_ = log.Error("update failed", map[string]interface{}{
 			"error": err.Error(),
 		})
 		return err
 	}
 
-	log.Info("update ends", nil)
+	_ = log.Info("update ends", nil)
 	return nil
 }
 
@@ -89,7 +89,7 @@ func gc(ctx context.Context, c *Config) error {
 		}
 
 		p := filepath.Join(c.Dir, dentry.Name())
-		log.Info("removing old mirror", map[string]interface{}{
+		_ = log.Info("removing old mirror", map[string]interface{}{
 			"path": p,
 		})
 		err := os.RemoveAll(p)
@@ -128,7 +128,9 @@ func Run(c *Config, mirrors []string) error {
 	if err != nil {
 		return err
 	}
-	defer fl.Unlock()
+	defer func() {
+		_ = fl.Unlock()
+	}()
 
 	if len(mirrors) == 0 {
 		for id := range c.Mirrors {
