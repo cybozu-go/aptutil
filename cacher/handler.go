@@ -27,7 +27,7 @@ func (c cacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	p := path.Clean(r.URL.Path[1:])
 
 	if log.Enabled(log.LvDebug) {
-		log.Debug("request path", map[string]interface{}{
+		_ = log.Debug("request path", map[string]interface{}{
 			"path": p,
 		})
 	}

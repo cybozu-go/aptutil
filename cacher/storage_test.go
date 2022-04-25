@@ -2,7 +2,7 @@ package cacher
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -36,7 +36,7 @@ func insert(cm *Storage, data []byte, path string) (*apt.FileInfo, error) {
 
 func testStorageInsertWorksCorrectly(t *testing.T) {
 	t.Parallel()
-	dir, err := ioutil.TempDir("", "gotest")
+	dir, err := os.MkdirTemp("", "gotest")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,19 +60,19 @@ func testStorageInsertWorksCorrectly(t *testing.T) {
 
 func testStorageInsertOverwrite(t *testing.T) {
 	t.Parallel()
-	dir, err := ioutil.TempDir("", "gotest")
+	dir, err := os.MkdirTemp("", "gotest")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(dir)
 	cm := NewStorage(dir, 0)
 
-	fi, err := insert(cm, []byte("a"), "path/to/a")
+	_, err = insert(cm, []byte("a"), "path/to/a")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	fi, err = insert(cm, []byte("a"), "path/to/a")
+	fi, err := insert(cm, []byte("a"), "path/to/a")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +89,7 @@ func testStorageInsertOverwrite(t *testing.T) {
 
 func testStorageInsertReturnsErrorAgainstBadPath(t *testing.T) {
 	t.Parallel()
-	dir, err := ioutil.TempDir("", "gotest")
+	dir, err := os.MkdirTemp("", "gotest")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +127,7 @@ func testStorageInsertReturnsErrorAgainstBadPath(t *testing.T) {
 
 func testStorageInsertPurgesFilesAllowingLRU(t *testing.T) {
 	t.Parallel()
-	dir, err := ioutil.TempDir("", "gotest")
+	dir, err := os.MkdirTemp("", "gotest")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -220,27 +220,27 @@ func TestStorageLoad(t *testing.T) {
 		"ghij": {'g', 'h', 'i', 'j'},
 	}
 
-	dir, err := ioutil.TempDir("", "gotest")
+	dir, err := os.MkdirTemp("", "gotest")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(dir)
 
 	for k, v := range files {
-		err := ioutil.WriteFile(filepath.Join(dir, k+fileSuffix), v, 0644)
+		err := os.WriteFile(filepath.Join(dir, k+fileSuffix), v, 0644)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
 
 	// dummy should be ignored as it does not have a proper suffix.
-	err = ioutil.WriteFile(filepath.Join(dir, "dummy"), []byte{'d'}, 0644)
+	err = os.WriteFile(filepath.Join(dir, "dummy"), []byte{'d'}, 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	cm := NewStorage(dir, 0)
-	cm.Load()
+	_ = cm.Load()
 
 	l := cm.ListAll()
 	if len(l) != len(files) {
@@ -284,12 +284,12 @@ func TestStorageLoad(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	data, err := ioutil.ReadAll(fGHIJ)
+	data, err := io.ReadAll(fGHIJ)
 	fGHIJ.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if bytes.Compare(files["ghij"], data) != 0 {
-		t.Error(`bytes.Compare(files["ghij"], data) != 0`)
+	if !bytes.Equal(files["ghij"], data) {
+		t.Error(`!bytes.Equal(files["ghij"], data)`)
 	}
 }
