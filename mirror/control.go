@@ -139,6 +139,9 @@ func Run(c *Config, mirrors []string) error {
 	well.Go(func(ctx context.Context) error {
 		err := updateMirrors(ctx, c, mirrors)
 		if err != nil {
+			if gcErr := gc(ctx, c); gcErr != nil {
+				err = errors.Wrap(err, gcErr.Error())
+			}
 			return err
 		}
 		return gc(ctx, c)
