@@ -88,10 +88,14 @@ func NewMirror(t time.Time, id string, c *Config) (*Mirror, error) {
 		sem <- struct{}{}
 	}
 
-	transport := &http.Transport{
-		Proxy:               http.ProxyFromEnvironment,
-		MaxIdleConnsPerHost: c.MaxConns,
+	transport := clonedTransport(http.DefaultTransport)
+	if transport == nil {
+		transport = &http.Transport{
+			Proxy:               http.ProxyFromEnvironment,
+			MaxIdleConnsPerHost: c.MaxConns,
+		}
 	}
+	transport.MaxIdleConnsPerHost = c.MaxConns
 
 	mr := &Mirror{
 		id:        id,
@@ -105,6 +109,14 @@ func NewMirror(t time.Time, id string, c *Config) (*Mirror, error) {
 		},
 	}
 	return mr, nil
+}
+
+func clonedTransport(rt http.RoundTripper) *http.Transport {
+	t, ok := rt.(*http.Transport)
+	if !ok {
+		return nil
+	}
+	return t.Clone()
 }
 
 func (m *Mirror) storeLink(fi *apt.FileInfo, fp string, byhash bool) error {
