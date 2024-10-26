@@ -326,13 +326,20 @@ RETRY:
 		time.Sleep(time.Duration(1<<(retries-1)) * time.Second)
 	}
 
+	// imitation apt-get command
+	// NOTE: apt-get sets If-Modified-Since and makes a request to the server,
+	// but the current aptutil cannot handle this because it cold-starts every time.
+	header := http.Header{}
+	header.Add("Cache-Control", "max-age=0")
+	header.Add("User-Agent", "Debian APT-HTTP/1.3 (aptutil)")
+
 	req := &http.Request{
 		Method:     "GET",
 		URL:        m.mc.Resolve(targets[0]),
 		Proto:      "HTTP/1.1",
 		ProtoMajor: 1,
 		ProtoMinor: 1,
-		Header:     make(http.Header),
+		Header:     header,
 	}
 	resp, err := m.client.Do(req.WithContext(ctx))
 	if err != nil {

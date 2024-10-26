@@ -296,13 +296,20 @@ func (c *Cacher) download(ctx context.Context, p string, u *url.URL, valid *apt.
 	ctx, cancel := context.WithTimeout(ctx, requestTimeout)
 	defer cancel()
 
+	// imitation apt-get command
+	// NOTE: apt-get sets If-Modified-Since and makes a request to the server,
+	// but the current aptutil cannot handle this because it cold-starts every time.
+	header := http.Header{}
+	header.Add("Cache-Control", "max-age=0")
+	header.Add("User-Agent", "Debian APT-HTTP/1.3 (aptutil)")
+
 	req := &http.Request{
 		Method:     "GET",
 		URL:        u,
 		Proto:      "HTTP/1.1",
 		ProtoMajor: 1,
 		ProtoMinor: 1,
-		Header:     make(http.Header),
+		Header:     header,
 	}
 	resp, err := c.client.Do(req.WithContext(ctx))
 	if err != nil {
