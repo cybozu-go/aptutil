@@ -91,8 +91,7 @@ func NewMirror(t time.Time, id string, c *Config) (*Mirror, error) {
 	transport := clonedTransport(http.DefaultTransport)
 	if transport == nil {
 		transport = &http.Transport{
-			Proxy:               http.ProxyFromEnvironment,
-			MaxIdleConnsPerHost: c.MaxConns,
+			Proxy: http.ProxyFromEnvironment,
 		}
 	}
 	transport.MaxIdleConnsPerHost = c.MaxConns
