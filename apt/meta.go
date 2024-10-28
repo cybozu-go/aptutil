@@ -253,56 +253,63 @@ func getFilesFromSources(p string, r io.Reader) ([]*FileInfo, Paragraph, error) 
 		if !ok {
 			return nil, nil, errors.New("no Directory in " + p)
 		}
-		files, ok := d["Files"]
-		if !ok {
-			return nil, nil, errors.New("no Files in " + p)
-		}
 
 		m := make(map[string]*FileInfo)
-		for _, l := range files {
+
+		for _, l := range d["Files"] {
 			fname, size, csum, err := parseChecksum(l)
 			if err != nil {
 				return nil, nil, errors.Wrap(err, "parseChecksum for Files")
 			}
 
 			fpath := path.Clean(path.Join(dir[0], fname))
-			fi := &FileInfo{
+			m[fpath] = &FileInfo{
 				path:   fpath,
 				size:   size,
 				md5sum: csum,
 			}
-			m[fpath] = fi
 		}
 
 		for _, l := range d["Checksums-Sha1"] {
-			fname, _, csum, err := parseChecksum(l)
+			fname, size, csum, err := parseChecksum(l)
 			if err != nil {
 				return nil, nil, errors.Wrap(err, "parseChecksum for Checksums-Sha1")
 			}
 
 			fpath := path.Clean(path.Join(dir[0], fname))
-			fi, ok := m[fpath]
-			if !ok {
-				return nil, nil, errors.New("mismatch between Files and Checksums-Sha1 in " + p)
+			if _, ok := m[fpath]; ok {
+				m[fpath].sha1sum = csum
+			} else {
+				m[fpath] = &FileInfo{
+					path:    fpath,
+					size:    size,
+					sha1sum: csum,
+				}
 			}
-			fi.sha1sum = csum
 		}
 
 		for _, l := range d["Checksums-Sha256"] {
-			fname, _, csum, err := parseChecksum(l)
+			fname, size, csum, err := parseChecksum(l)
 			if err != nil {
 				return nil, nil, errors.Wrap(err, "parseChecksum for Checksums-Sha256")
 			}
 
 			fpath := path.Clean(path.Join(dir[0], fname))
-			fi, ok := m[fpath]
-			if !ok {
-				return nil, nil, errors.New("mismatch between Files and Checksums-Sha256 in " + p)
+			if _, ok := m[fpath]; ok {
+				m[fpath].sha256sum = csum
+			} else {
+				m[fpath] = &FileInfo{
+					path:      fpath,
+					size:      size,
+					sha256sum: csum,
+				}
 			}
-			fi.sha256sum = csum
 		}
 
 		for _, fi := range m {
+			if len(fi.md5sum) == 0 && len(fi.sha1sum) == 0 && len(fi.sha256sum) == 0 {
+				return nil, nil, errors.New("no checksum in " + fi.path)
+			}
 			l = append(l, fi)
 		}
 	}
