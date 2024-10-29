@@ -2,7 +2,6 @@ package mirror
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -23,7 +22,7 @@ func makeFileInfo(path string, data []byte) (*apt.FileInfo, error) {
 func testStorageBadConstruction(t *testing.T) {
 	t.Parallel()
 
-	f, err := ioutil.TempFile("", "gotest")
+	f, err := os.CreateTemp("", "gotest")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +48,7 @@ func testStorageBadConstruction(t *testing.T) {
 func testStorageLookup(t *testing.T) {
 	t.Parallel()
 
-	d, err := ioutil.TempDir("", "gotest")
+	d, err := os.MkdirTemp("", "gotest")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +109,7 @@ func testStorageLookup(t *testing.T) {
 		t.Error(`fi3 == nil`)
 	}
 
-	s.Save()
+	_ = s.Save()
 
 	s2, err := NewStorage(d, "ubuntu")
 	if err != nil {
@@ -162,7 +161,7 @@ func testStorageLookup(t *testing.T) {
 func testStorageStore(t *testing.T) {
 	t.Parallel()
 
-	d, err := ioutil.TempDir("", "gotest")
+	d, err := os.MkdirTemp("", "gotest")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -207,7 +206,7 @@ func testStorageStore(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fi, err = apt.CopyWithFileInfo(tempfile, strings.NewReader("def"), "a/b/c")
+	fi, _ = apt.CopyWithFileInfo(tempfile, strings.NewReader("def"), "a/b/c")
 	tempfile.Close()
 	err = s.StoreLinkWithHash(fi, tempfile.Name())
 	os.Remove(tempfile.Name())

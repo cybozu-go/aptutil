@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
@@ -192,7 +191,7 @@ func (m *Mirror) Update(ctx context.Context) error {
 	}
 
 	// download all files matching the configuration.
-	log.Info("download items", map[string]interface{}{
+	_ = log.Info("download items", map[string]interface{}{
 		"repo":  m.id,
 		"items": len(itemMap),
 	})
@@ -202,7 +201,7 @@ func (m *Mirror) Update(ctx context.Context) error {
 	}
 
 	// all files are downloaded (or reused)
-	log.Info("saving meta data", map[string]interface{}{
+	_ = log.Info("saving meta data", map[string]interface{}{
 		"repo": m.id,
 	})
 	err = m.storage.Save()
@@ -216,7 +215,7 @@ func (m *Mirror) Update(ctx context.Context) error {
 		return errors.Wrap(err, m.id)
 	}
 
-	log.Info("update succeeded", map[string]interface{}{
+	_ = log.Info("update succeeded", map[string]interface{}{
 		"repo": m.id,
 	})
 	return nil
@@ -224,7 +223,7 @@ func (m *Mirror) Update(ctx context.Context) error {
 
 // updateSuite partially updates mirror for a suite.
 func (m *Mirror) updateSuite(ctx context.Context, suite string, itemMap map[string]*apt.FileInfo) error {
-	log.Info("download Release/InRelease", map[string]interface{}{
+	_ = log.Info("download Release/InRelease", map[string]interface{}{
 		"repo":  m.id,
 		"suite": suite,
 	})
@@ -234,7 +233,7 @@ func (m *Mirror) updateSuite(ctx context.Context, suite string, itemMap map[stri
 	}
 
 	if byhash {
-		log.Info("detected by-hash support", map[string]interface{}{
+		_ = log.Info("detected by-hash support", map[string]interface{}{
 			"repo":  m.id,
 			"suite": suite,
 		})
@@ -283,7 +282,7 @@ type dlResult struct {
 }
 
 func closeRespBody(r *http.Response) {
-	io.Copy(ioutil.Discard, r.Body)
+	_, _ = io.Copy(io.Discard, r.Body)
 	r.Body.Close()
 }
 
@@ -330,7 +329,7 @@ RETRY:
 	}
 
 	if retries > 0 {
-		log.Warn("retrying download", map[string]interface{}{
+		_ = log.Warn("retrying download", map[string]interface{}{
 			"repo": m.id,
 			"path": p,
 		})
@@ -364,7 +363,7 @@ RETRY:
 	defer closeRespBody(resp)
 
 	if log.Enabled(log.LvDebug) {
-		log.Debug("downloaded", map[string]interface{}{
+		_ = log.Debug("downloaded", map[string]interface{}{
 			"repo":               m.id,
 			"path":               p,
 			log.FnHTTPStatusCode: resp.StatusCode,
@@ -409,7 +408,7 @@ RETRY:
 	if fi != nil && !fi.Same(fi2) {
 		if len(targets) > 1 {
 			targets = targets[1:]
-			log.Warn("try by-hash retrieval", map[string]interface{}{
+			_ = log.Warn("try by-hash retrieval", map[string]interface{}{
 				"repo":   m.id,
 				"path":   p,
 				"target": targets[0],
@@ -525,7 +524,7 @@ func (m *Mirror) downloadIndices(ctx context.Context,
 		fil = append(fil, fil2...)
 	}
 
-	log.Info("download other indices", map[string]interface{}{
+	_ = log.Info("download other indices", map[string]interface{}{
 		"repo":    m.id,
 		"indices": len(fil),
 	})
@@ -565,7 +564,7 @@ func (m *Mirror) downloadFiles(ctx context.Context,
 		return nil, err
 	}
 
-	log.Info("stats", map[string]interface{}{
+	_ = log.Info("stats", map[string]interface{}{
 		"repo":       m.id,
 		"total":      len(fil),
 		"reused":     len(reused),
@@ -586,7 +585,7 @@ func (m *Mirror) reuseOrDownload(ctx context.Context, fil []*apt.FileInfo,
 	// by closing results channel.
 	defer func() {
 		env.Stop()
-		env.Wait()
+		_ = env.Wait()
 		close(results)
 	}()
 
@@ -599,7 +598,7 @@ func (m *Mirror) reuseOrDownload(ctx context.Context, fil []*apt.FileInfo,
 		now := time.Now()
 		if now.Sub(loggedAt) > progressInterval {
 			loggedAt = now
-			log.Info("download progress", map[string]interface{}{
+			_ = log.Info("download progress", map[string]interface{}{
 				"repo":      m.id,
 				"total":     len(fil),
 				"reused":    len(reused),
@@ -616,7 +615,7 @@ func (m *Mirror) reuseOrDownload(ctx context.Context, fil []*apt.FileInfo,
 				}
 				reused = append(reused, localfi)
 				if log.Enabled(log.LvDebug) {
-					log.Debug("reuse item", map[string]interface{}{
+					_ = log.Debug("reuse item", map[string]interface{}{
 						"repo": m.id,
 						"path": fi.Path(),
 					})
@@ -649,7 +648,7 @@ func (m *Mirror) handleResult(r *dlResult, allowMissing, byhash bool) (*apt.File
 	}
 
 	if allowMissing && r.status == http.StatusNotFound {
-		log.Warn("missing file", map[string]interface{}{
+		_ = log.Warn("missing file", map[string]interface{}{
 			"repo": m.id,
 			"path": r.path,
 		})
