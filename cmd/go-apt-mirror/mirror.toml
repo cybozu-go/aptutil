@@ -14,7 +14,7 @@ level = "info"
 format = "plain"
 
 # [mirror.xxx] defines a mirror configuration for a debian repository.
-# "xxx" must match this regexp: ^[a-z0-9_-]+$
+# "xxx" must match this regexp: ^[A-Za-z0-9_-]+$
 #
 # url:           The repository base URL.
 # suites:        List of suites to mirror.  see sources.list(5).
