@@ -17,6 +17,3 @@ tags
 # Archives
 pkg/
 *.tgz
-
-# Ignore go.sum
-/go.sum
