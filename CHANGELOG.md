@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Security
+- Reject repository metadata paths (Packages `Filename`, Release/Index
+  checksums, Sources `Directory`/`Files`) that are absolute or escape the
+  mirror directory via `..`, preventing directory traversal.  Base
+  directories and file entries of index entries are validated
+  separately, so an entry escaping its base via `..` is rejected even if
+  it would resolve within the mirror directory, and `.`/`./` are now
+  treated as unsafe file paths.
 
 ## [1.4.2] - 2020-12-23
 ### Changed

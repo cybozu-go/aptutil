@@ -212,9 +212,8 @@ func (cm *Storage) Insert(filename string, fi *apt.FileInfo) error {
 	switch {
 	case p != filepath.Clean(p):
 		return ErrBadPath
-	case filepath.IsAbs(p):
-		return ErrBadPath
-	case p == ".":
+	case !apt.IsSafePath(p):
+		// reject paths that escape the cache root via "..".
 		return ErrBadPath
 	}
 

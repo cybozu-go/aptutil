@@ -15,6 +15,57 @@ import (
 	"github.com/ulikunitz/xz"
 )
 
+// errUnsafePath is returned for a repository path that is not a safe
+// relative path within the repository root.  It is unexported because
+// callers only need the error's presence, not its identity.
+var errUnsafePath = errors.New("unsafe repository path")
+
+// cleanDirPath cleans a slash-separated directory path taken
+// from repository metadata and returns the cleaned path if it is safe to
+// use under the repository root.  "." is valid; it denotes the root
+// itself.
+//
+// A path is unsafe if it is empty, absolute, or escapes the root via
+// "..".  Note that path.Clean does not strip a leading "..", so such
+// paths must be rejected explicitly to prevent directory traversal.
+//
+// Cleaned safe paths contain no ".." element, so path.Join of a safe
+// directory path and a safe file path cannot escape the root either.
+// Validate the parts before joining, not the joined result: path.Join
+// masks an absolute entry by reinterpreting it as relative, and lets a
+// leading ".." in an entry be absorbed by base elements.
+func cleanDirPath(p string) (string, error) {
+	if p == "" {
+		return "", errUnsafePath
+	}
+	c := path.Clean(p)
+	if c == ".." || path.IsAbs(c) || strings.HasPrefix(c, "../") {
+		return "", errUnsafePath
+	}
+	return c, nil
+}
+
+// cleanFilePath is like cleanDirPath except that "."
+// is also unsafe because it cannot name a file.
+func cleanFilePath(p string) (string, error) {
+	c, err := cleanDirPath(p)
+	if err != nil {
+		return "", err
+	}
+	if c == "." {
+		return "", errUnsafePath
+	}
+	return c, nil
+}
+
+// IsSafePath reports whether p is a relative file path that stays within
+// the repository root.  A path is unsafe if it is empty, absolute, ".",
+// or escapes the root via "..".
+func IsSafePath(p string) bool {
+	_, err := cleanFilePath(p)
+	return err == nil
+}
+
 // IsMeta returns true if p points a debian repository index file
 // containing checksums for other files.
 func IsMeta(p string) bool {
@@ -88,7 +139,10 @@ func parseChecksum(l string) (p string, size uint64, csum []byte, err error) {
 // getFilesFromRelease parses Release or InRelease file and
 // returns a list of *FileInfo pointed in the file.
 func getFilesFromRelease(p string, r io.Reader) ([]*FileInfo, Paragraph, error) {
-	dir := path.Dir(p)
+	dir, err := cleanDirPath(path.Dir(p))
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "directory of "+p)
+	}
 
 	d, err := NewParser(r).Read()
 	if err != nil {
@@ -106,57 +160,69 @@ func getFilesFromRelease(p string, r io.Reader) ([]*FileInfo, Paragraph, error) 
 	m := make(map[string]*FileInfo)
 
 	for _, l := range md5sums {
-		p, size, csum, err := parseChecksum(l)
-		p = path.Join(dir, path.Clean(p))
+		entryPath, size, csum, err := parseChecksum(l)
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "parseChecksum for md5sums")
 		}
+		entry, err := cleanFilePath(entryPath)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "Release entry "+entryPath)
+		}
+		fpath := path.Join(dir, entry)
 
 		fi := &FileInfo{
-			path:   p,
+			path:   fpath,
 			size:   size,
 			md5sum: csum,
 		}
-		m[p] = fi
+		m[fpath] = fi
 	}
 
 	for _, l := range sha1sums {
-		p, size, csum, err := parseChecksum(l)
-		p = path.Join(dir, path.Clean(p))
+		entryPath, size, csum, err := parseChecksum(l)
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "parseChecksum for sha1sums")
 		}
+		entry, err := cleanFilePath(entryPath)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "Release entry "+entryPath)
+		}
+		fpath := path.Join(dir, entry)
 
-		fi, ok := m[p]
+		fi, ok := m[fpath]
 		if ok {
 			fi.sha1sum = csum
 		} else {
 			fi := &FileInfo{
-				path:    p,
+				path:    fpath,
 				size:    size,
 				sha1sum: csum,
 			}
-			m[p] = fi
+			m[fpath] = fi
 		}
 	}
 
 	for _, l := range sha256sums {
-		p, size, csum, err := parseChecksum(l)
-		p = path.Join(dir, path.Clean(p))
+		entryPath, size, csum, err := parseChecksum(l)
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "parseChecksum for sha256sums")
 		}
+		entry, err := cleanFilePath(entryPath)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "Release entry "+entryPath)
+		}
+		fpath := path.Join(dir, entry)
 
-		fi, ok := m[p]
+		fi, ok := m[fpath]
 		if ok {
 			fi.sha256sum = csum
 		} else {
 			fi := &FileInfo{
-				path:      p,
+				path:      fpath,
 				size:      size,
 				sha256sum: csum,
 			}
-			m[p] = fi
+			m[fpath] = fi
 		}
 	}
 
@@ -192,7 +258,10 @@ func getFilesFromPackages(p string, r io.Reader) ([]*FileInfo, Paragraph, error)
 		if !ok {
 			return nil, nil, errors.New("no Filename in " + p)
 		}
-		fpath := path.Clean(filename[0])
+		fpath, err := cleanFilePath(filename[0])
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "Filename in "+p+": "+filename[0])
+		}
 
 		strsize, ok := d["Size"]
 		if !ok {
@@ -249,9 +318,13 @@ func getFilesFromSources(p string, r io.Reader) ([]*FileInfo, Paragraph, error) 
 			return nil, nil, errors.Wrap(err, "parser.Read")
 		}
 
-		dir, ok := d["Directory"]
+		dirs, ok := d["Directory"]
 		if !ok {
 			return nil, nil, errors.New("no Directory in " + p)
+		}
+		dir, err := cleanDirPath(dirs[0])
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "Directory in "+p+": "+dirs[0])
 		}
 
 		m := make(map[string]*FileInfo)
@@ -262,7 +335,11 @@ func getFilesFromSources(p string, r io.Reader) ([]*FileInfo, Paragraph, error) 
 				return nil, nil, errors.Wrap(err, "parseChecksum for Files")
 			}
 
-			fpath := path.Clean(path.Join(dir[0], fname))
+			entry, err := cleanFilePath(fname)
+			if err != nil {
+				return nil, nil, errors.Wrap(err, "Sources entry "+fname)
+			}
+			fpath := path.Join(dir, entry)
 			m[fpath] = &FileInfo{
 				path:   fpath,
 				size:   size,
@@ -276,7 +353,11 @@ func getFilesFromSources(p string, r io.Reader) ([]*FileInfo, Paragraph, error) 
 				return nil, nil, errors.Wrap(err, "parseChecksum for Checksums-Sha1")
 			}
 
-			fpath := path.Clean(path.Join(dir[0], fname))
+			entry, err := cleanFilePath(fname)
+			if err != nil {
+				return nil, nil, errors.Wrap(err, "Sources entry "+fname)
+			}
+			fpath := path.Join(dir, entry)
 			if _, ok := m[fpath]; ok {
 				m[fpath].sha1sum = csum
 			} else {
@@ -294,7 +375,11 @@ func getFilesFromSources(p string, r io.Reader) ([]*FileInfo, Paragraph, error) 
 				return nil, nil, errors.Wrap(err, "parseChecksum for Checksums-Sha256")
 			}
 
-			fpath := path.Clean(path.Join(dir[0], fname))
+			entry, err := cleanFilePath(fname)
+			if err != nil {
+				return nil, nil, errors.Wrap(err, "Sources entry "+fname)
+			}
+			fpath := path.Join(dir, entry)
 			if _, ok := m[fpath]; ok {
 				m[fpath].sha256sum = csum
 			} else {

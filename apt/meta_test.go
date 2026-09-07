@@ -2,7 +2,9 @@ package apt
 
 import (
 	"encoding/hex"
+	"errors"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -291,6 +293,400 @@ func TestExtractFileInfo(t *testing.T) {
 	}
 	if len(fil) != 0 {
 		t.Error(`len(fil) != 0`)
+	}
+}
+
+func TestCleanDirPath(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name    string
+		in      string
+		want    string
+		wantErr bool
+	}{
+		{
+			name: "pool directory",
+			in:   "pool/main/a",
+			want: "pool/main/a",
+		},
+		{
+			name: "dot is the root",
+			in:   ".",
+			want: ".",
+		},
+		{
+			name: "dot-slash is the root",
+			in:   "./",
+			want: ".",
+		},
+		{
+			name: "inner dotdot resolving to the root",
+			in:   "a/..",
+			want: ".",
+		},
+		{
+			name:    "empty",
+			in:      "",
+			wantErr: true,
+		},
+		{
+			name:    "dotdot",
+			in:      "..",
+			wantErr: true,
+		},
+		{
+			name:    "leading dotdot",
+			in:      "../etc",
+			wantErr: true,
+		},
+		{
+			name:    "inner dotdot escaping",
+			in:      "a/../../etc",
+			wantErr: true,
+		},
+		{
+			name:    "absolute path",
+			in:      "/etc",
+			wantErr: true,
+		},
+		{
+			name:    "root",
+			in:      "/",
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := cleanDirPath(tc.in)
+			if tc.wantErr {
+				if !errors.Is(err, errUnsafePath) {
+					t.Errorf("cleanDirPath(%q) = %q, %v, want errUnsafePath", tc.in, got, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("cleanDirPath(%q) returned error: %v", tc.in, err)
+			}
+			if got != tc.want {
+				t.Errorf("cleanDirPath(%q) = %q, want %q", tc.in, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestCleanFilePath(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name    string
+		in      string
+		want    string
+		wantErr bool
+	}{
+		{
+			name: "pool path",
+			in:   "pool/main/a/aalib_1.4.deb",
+			want: "pool/main/a/aalib_1.4.deb",
+		},
+		{
+			name: "nested path",
+			in:   "a/b/c",
+			want: "a/b/c",
+		},
+		{
+			name: "bare file",
+			in:   "file",
+			want: "file",
+		},
+		{
+			name: "dot-slash prefix",
+			in:   "./file",
+			want: "file",
+		},
+		{
+			name: "inner dotdot resolving inside",
+			in:   "a/../b",
+			want: "b",
+		},
+		{
+			name:    "empty",
+			in:      "",
+			wantErr: true,
+		},
+		{
+			name:    "dot",
+			in:      ".",
+			wantErr: true,
+		},
+		{
+			name:    "dot-slash",
+			in:      "./",
+			wantErr: true,
+		},
+		{
+			name:    "dotdot",
+			in:      "..",
+			wantErr: true,
+		},
+		{
+			name:    "leading dotdot",
+			in:      "../etc/passwd",
+			wantErr: true,
+		},
+		{
+			name:    "double leading dotdot",
+			in:      "../../etc/cron.d/evil",
+			wantErr: true,
+		},
+		{
+			name:    "inner dotdot escaping",
+			in:      "a/../../etc/passwd",
+			wantErr: true,
+		},
+		{
+			name:    "absolute path",
+			in:      "/etc/passwd",
+			wantErr: true,
+		},
+		{
+			name:    "root",
+			in:      "/",
+			wantErr: true,
+		},
+		{
+			name:    "deep dotdot escape",
+			in:      "pool/../../../../etc/passwd",
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := cleanFilePath(tc.in)
+			if tc.wantErr {
+				if !errors.Is(err, errUnsafePath) {
+					t.Errorf("cleanFilePath(%q) = %q, %v, want errUnsafePath", tc.in, got, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("cleanFilePath(%q) returned error: %v", tc.in, err)
+			}
+			if got != tc.want {
+				t.Errorf("cleanFilePath(%q) = %q, want %q", tc.in, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestIsSafePath(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		in   string
+		want bool
+	}{
+		{
+			name: "pool path",
+			in:   "pool/main/a/aalib_1.4.deb",
+			want: true,
+		},
+		{
+			name: "nested path",
+			in:   "a/b/c",
+			want: true,
+		},
+		{
+			name: "bare file",
+			in:   "file",
+			want: true,
+		},
+		{
+			name: "dot-slash prefix",
+			in:   "./file",
+			want: true,
+		},
+		{
+			name: "inner dotdot resolving inside",
+			in:   "a/../b",
+			want: true,
+		},
+		{
+			name: "empty",
+			in:   "",
+			want: false,
+		},
+		{
+			name: "dot",
+			in:   ".",
+			want: false,
+		},
+		{
+			name: "dot-slash",
+			in:   "./",
+			want: false,
+		},
+		{
+			name: "dotdot",
+			in:   "..",
+			want: false,
+		},
+		{
+			name: "leading dotdot",
+			in:   "../etc/passwd",
+			want: false,
+		},
+		{
+			name: "double leading dotdot",
+			in:   "../../etc/cron.d/evil",
+			want: false,
+		},
+		{
+			name: "inner dotdot escaping",
+			in:   "a/../../etc/passwd",
+			want: false,
+		},
+		{
+			name: "absolute path",
+			in:   "/etc/passwd",
+			want: false,
+		},
+		{
+			name: "root",
+			in:   "/",
+			want: false,
+		},
+		{
+			name: "deep dotdot escape",
+			in:   "pool/../../../../etc/passwd",
+			want: false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := IsSafePath(tc.in); got != tc.want {
+				t.Errorf("IsSafePath(%q) = %v, want %v", tc.in, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestExtractFileInfoRejectsTraversal(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		path string
+		body string
+	}{
+		{
+			name: "Packages relative traversal",
+			path: "ubuntu/dists/testing/main/binary-amd64/Packages",
+			body: "Package: evil\n" +
+				"Filename: ../../../../../../etc/cron.d/evil\n" +
+				"SHA1: 903b3305c86e872db25985f2b686ef8d1c3760cf\n" +
+				"Size: 100\n",
+		},
+		{
+			name: "Packages absolute path",
+			path: "ubuntu/dists/testing/main/binary-amd64/Packages",
+			body: "Package: evil\n" +
+				"Filename: /etc/cron.d/evil\n" +
+				"SHA1: 903b3305c86e872db25985f2b686ef8d1c3760cf\n" +
+				"Size: 100\n",
+		},
+		{
+			name: "Packages dot path",
+			path: "ubuntu/dists/testing/main/binary-amd64/Packages",
+			body: "Package: evil\n" +
+				"Filename: .\n" +
+				"SHA1: 903b3305c86e872db25985f2b686ef8d1c3760cf\n" +
+				"Size: 100\n",
+		},
+		{
+			name: "Packages dot-slash path",
+			path: "ubuntu/dists/testing/main/binary-amd64/Packages",
+			body: "Package: evil\n" +
+				"Filename: ./\n" +
+				"SHA1: 903b3305c86e872db25985f2b686ef8d1c3760cf\n" +
+				"Size: 100\n",
+		},
+		{
+			name: "Release checksum traversal",
+			path: "ubuntu/dists/testing/Release",
+			body: "SHA256:\n" +
+				" cebb641f03510c2c350ea2e94406c4c09708364fa296730e64ecdb1107b380b7 100 ../../../../../../etc/cron.d/evil\n",
+		},
+		{
+			// Index uses the same code path (getFilesFromRelease), so a
+			// Release case covers both.  An absolute entry must not be
+			// silently reinterpreted as relative to the index directory.
+			name: "Release checksum absolute path",
+			path: "ubuntu/dists/testing/Release",
+			body: "SHA256:\n" +
+				" cebb641f03510c2c350ea2e94406c4c09708364fa296730e64ecdb1107b380b7 100 /etc/passwd\n",
+		},
+		{
+			// even a ".." that resolves within the repository root is
+			// rejected in index entries.
+			name: "Release checksum in-root dotdot",
+			path: "ubuntu/dists/testing/Release",
+			body: "SHA256:\n" +
+				" cebb641f03510c2c350ea2e94406c4c09708364fa296730e64ecdb1107b380b7 100 ../../pool/evil\n",
+		},
+		{
+			name: "Sources Directory traversal",
+			path: "ubuntu/dists/testing/main/source/Sources",
+			body: "Package: evil\n" +
+				"Directory: ../../../../../../etc/cron.d\n" +
+				"Files:\n" +
+				" 6cfe5a56e3b0fc25edf653084c24c238 2078 evil\n",
+		},
+		{
+			name: "Sources Files traversal",
+			path: "ubuntu/dists/testing/main/source/Sources",
+			body: "Package: evil\n" +
+				"Directory: pool/main/e/evil\n" +
+				"Files:\n" +
+				" 6cfe5a56e3b0fc25edf653084c24c238 2078 ../../../../../../../../etc/cron.d/evil\n",
+		},
+		{
+			name: "Sources Files absolute path",
+			path: "ubuntu/dists/testing/main/source/Sources",
+			body: "Package: evil\n" +
+				"Directory: pool/main/e/evil\n" +
+				"Files:\n" +
+				" 6cfe5a56e3b0fc25edf653084c24c238 2078 /etc/passwd\n",
+		},
+		{
+			name: "Sources Files in-root dotdot",
+			path: "ubuntu/dists/testing/main/source/Sources",
+			body: "Package: evil\n" +
+				"Directory: pool/main/e/evil\n" +
+				"Files:\n" +
+				" 6cfe5a56e3b0fc25edf653084c24c238 2078 ../other/evil\n",
+		},
+		{
+			name: "Sources Checksums-Sha256 absolute path",
+			path: "ubuntu/dists/testing/main/source/Sources",
+			body: "Package: evil\n" +
+				"Directory: pool/main/e/evil\n" +
+				"Checksums-Sha256:\n" +
+				" 3a126eec194457778a477d95a9dd4b8c03d6a95b9c064cddcae63eba2e674797 100 /etc/passwd\n",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, _, err := ExtractFileInfo(tc.path, strings.NewReader(tc.body))
+			if err == nil {
+				t.Errorf("%s: expected an error for a path-traversal entry", tc.name)
+			}
+		})
 	}
 }
 
