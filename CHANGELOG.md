@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+
+## [1.4.3] - 2026-09-07
+### Added
+- [mirror] support xz compressed metadata (#59).
+
+### Changed
+- [cacher] [mirror] send `Cache-Control` and `User-Agent` headers imitating
+  the apt-get command (#67).
+- Use GitHub Actions instead of CircleCI.
+
+### Fixed
+- [apt] accept Sources entries that have only `Checksums-Sha1` or
+  `Checksums-Sha256` without the `Files` field (#68).
+- [mirror] clean up temporary directories upon update failure (#61, #63).
+- [mirror] initialize `http.Transport` by copying `http.DefaultTransport`
+  for forward compatibility (#66).
+
 ### Security
 - Reject repository metadata paths (Packages `Filename`, Release/Index
   checksums, Sources `Directory`/`Files`) that are absolute or escape the
@@ -10,7 +27,7 @@ All notable changes to this project will be documented in this file.
   directories and file entries of index entries are validated
   separately, so an entry escaping its base via `..` is rejected even if
   it would resolve within the mirror directory, and `.`/`./` are now
-  treated as unsafe file paths.
+  treated as unsafe file paths. (#73)
 
 ## [1.4.2] - 2020-12-23
 ### Changed
@@ -86,7 +103,8 @@ All notable changes to this project will be documented in this file.
 [well]: https://github.com/cybozu-go/well
 [cmd]: https://github.com/cybozu-go/cmd
 [spec]: https://github.com/cybozu-go/cmd/blob/master/README.md#specifications
-[Unreleased]: https://github.com/cybozu-go/aptutil/compare/v1.4.2...HEAD
+[Unreleased]: https://github.com/cybozu-go/aptutil/compare/v1.4.3...HEAD
+[1.4.3]: https://github.com/cybozu-go/aptutil/compare/v1.4.2...v1.4.3
 [1.4.2]: https://github.com/cybozu-go/aptutil/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/cybozu-go/aptutil/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/cybozu-go/aptutil/compare/v1.4.0rc1...v1.4.0
