@@ -113,6 +113,14 @@ func testStorageInsertReturnsErrorAgainstBadPath(t *testing.T) {
 			Title: ".",
 			Path:  ".",
 		},
+		{
+			Title: "Parent traversal",
+			Path:  "../foo",
+		},
+		{
+			Title: "Nested parent traversal",
+			Path:  "a/../../b",
+		},
 	}
 
 	for _, tc := range cases {
