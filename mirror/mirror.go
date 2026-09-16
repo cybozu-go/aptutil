@@ -25,7 +25,7 @@ const (
 )
 
 var (
-	validID = regexp.MustCompile(`^[a-z0-9_-]+$`)
+	validID = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
 )
 
 // Mirror implements mirroring logics.
